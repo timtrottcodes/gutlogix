@@ -1,99 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IBS Tracker</title>
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.3/dist/tailwind.min.css" rel="stylesheet">
-<style>
-  .hour-slot { min-height: 60px; border-bottom: 1px solid #e5e7eb; position: relative; }
-  .entry { padding: 2px 4px; margin: 1px 0; border-radius: 4px; font-size: 0.875rem; }
-  .food-entry { background-color: #fef3c7; }
-  .symptom-entry { background-color: #fee2e2; }
-  .modal-bg { background: rgba(0,0,0,0.5); }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IBS Tracker (Bootstrap)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    .hour-slot { border-bottom: 1px solid #dee2e6; padding: 8px; }
+    .entry { padding: 2px 6px; margin: 2px 0; border-radius: 4px; font-size: 0.875rem; }
+    .food-entry { background-color: #fff3cd; }
+    .symptom-entry { background-color: #f8d7da; }
+  </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-light">
 
-<div class="container mx-auto p-4">
-  <div class="flex justify-between items-center mb-4">
-    <h1 class="text-2xl font-bold">IBS Food & Symptom Tracker</h1>
-    <button id="viewReport" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">View Report</button>
+<div class="container my-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3">IBS Food & Symptom Tracker</h1>
+    <button id="viewReport" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reportModal">View Report</button>
   </div>
 
-  <div class="flex justify-between items-center mb-2">
-    <button id="prevDay" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">&lt; Previous</button>
-    <span id="currentDate" class="font-semibold"></span>
-    <button id="nextDay" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">Next &gt;</button>
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <button id="prevDay" class="btn btn-outline-secondary">&lt; Previous</button>
+    <span id="currentDate" class="fw-bold"></span>
+    <button id="nextDay" class="btn btn-outline-secondary">Next &gt;</button>
   </div>
 
-  <div id="diaryGrid" class="border rounded bg-white">
-    <!-- Hourly slots will be generated here -->
+  <div id="diaryGrid" class="border bg-white rounded">
+    <!-- Hour slots generated here -->
   </div>
 </div>
 
-<!-- Add Food Modal -->
-<div id="foodModal" class="hidden fixed inset-0 flex items-center justify-center modal-bg">
-  <div class="bg-white p-6 rounded shadow-lg w-96">
-    <h2 class="text-xl font-bold mb-4">Add Food</h2>
-    <label class="block mb-2">Food Name</label>
-    <input type="text" id="foodName" class="border w-full p-2 rounded mb-2" list="foodSuggestions">
-    <datalist id="foodSuggestions"></datalist>
-
-    <label class="block mb-2">Quantity</label>
-    <input type="text" id="foodQty" class="border w-full p-2 rounded mb-2">
-
-    <label class="block mb-2">Allergens (comma-separated)</label>
-    <input type="text" id="foodAllergens" class="border w-full p-2 rounded mb-2">
-
-    <label class="block mb-2">Time</label>
-    <input type="time" id="foodTime" class="border w-full p-2 rounded mb-4">
-
-    <div class="flex justify-end space-x-2">
-      <button id="cancelFood" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
-      <button id="saveFood" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Save</button>
+<!-- Food Modal -->
+<div class="modal fade" id="foodModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Food</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="foodForm">
+          <div class="mb-3">
+            <label class="form-label">Food Name</label>
+            <input type="text" id="foodName" class="form-control" list="foodSuggestions">
+            <datalist id="foodSuggestions"></datalist>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Quantity</label>
+            <input type="text" id="foodQty" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Allergens (comma separated)</label>
+            <input type="text" id="foodAllergens" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Time</label>
+            <input type="time" id="foodTime" class="form-control">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" id="saveFood" class="btn btn-success">Save</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Add Symptom Modal -->
-<div id="symptomModal" class="hidden fixed inset-0 flex items-center justify-center modal-bg">
-  <div class="bg-white p-6 rounded shadow-lg w-96">
-    <h2 class="text-xl font-bold mb-4">Add Symptom</h2>
-    <label class="block mb-2">Symptom</label>
-    <select id="symptomSelect" class="border w-full p-2 rounded mb-2">
-      <option value="">--Select--</option>
-    </select>
-    <input type="text" id="customSymptom" placeholder="Or add custom symptom" class="border w-full p-2 rounded mb-2">
-
-    <label class="block mb-2">Severity (1-10)</label>
-    <input type="number" id="symptomSeverity" min="1" max="10" class="border w-full p-2 rounded mb-2">
-
-    <label class="block mb-2">Frequency</label>
-    <select id="symptomFrequency" class="border w-full p-2 rounded mb-4">
-      <option value="once">Once</option>
-      <option value="hourly">Hourly</option>
-      <option value="constant">Constant</option>
-    </select>
-
-    <label class="block mb-2">Time</label>
-    <input type="time" id="symptomTime" class="border w-full p-2 rounded mb-4">
-
-    <div class="flex justify-end space-x-2">
-      <button id="cancelSymptom" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
-      <button id="saveSymptom" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Save</button>
+<!-- Symptom Modal -->
+<div class="modal fade" id="symptomModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Symptom</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="symptomForm">
+          <div class="mb-3">
+            <label class="form-label">Symptom</label>
+            <select id="symptomSelect" class="form-select">
+              <option value="">--Select--</option>
+            </select>
+            <input type="text" id="customSymptom" placeholder="Or add custom symptom" class="form-control mt-2">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Severity (1-10)</label>
+            <input type="number" id="symptomSeverity" min="1" max="10" class="form-control" value="5">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Frequency</label>
+            <select id="symptomFrequency" class="form-select">
+              <option value="once">Once</option>
+              <option value="hourly">Hourly</option>
+              <option value="constant">Constant</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Time</label>
+            <input type="time" id="symptomTime" class="form-control">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" id="saveSymptom" class="btn btn-success">Save</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- Report Modal -->
-<div id="reportModal" class="hidden fixed inset-0 flex items-center justify-center modal-bg">
-  <div class="bg-white p-6 rounded shadow-lg w-2/3 max-h-[80vh] overflow-y-auto">
-    <h2 class="text-xl font-bold mb-4">Correlation Report</h2>
-    <div id="reportContent"></div>
-    <div class="flex justify-end mt-4">
-      <button id="closeReport" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Close</button>
+<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Correlation Report</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="reportContent">
+        <!-- Report goes here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
     </div>
   </div>
 </div>
@@ -112,7 +145,6 @@ $(function(){
     currentDate: new Date().toISOString().split('T')[0]
   };
 
-  // Load from localStorage
   function loadState(){
     const saved = localStorage.getItem('ibsTracker');
     if(saved) state = JSON.parse(saved);
@@ -127,23 +159,30 @@ $(function(){
     $('#diaryGrid').empty();
     for(let h=0; h<24; h++){
       const hourStr = h.toString().padStart(2,'0') + ":00";
-      const slot = $(`<div class="hour-slot px-2 py-1 flex justify-between items-start">
-        <span class="w-16 font-semibold">${hourStr}</span>
-        <div class="flex-1 flex flex-col"></div>
-        <div class="space-x-1">
-          <button class="addFoodBtn bg-yellow-200 px-2 py-1 rounded text-sm hover:bg-yellow-300">Add Food</button>
-          <button class="addSymptomBtn bg-red-200 px-2 py-1 rounded text-sm hover:bg-red-300">Add Symptom</button>
+      const slot = $(`<div class="hour-slot row align-items-start">
+        <div class="col-2 fw-bold">${hourStr}</div>
+        <div class="col-7 entries"></div>
+        <div class="col-3 text-end">
+          <button class="btn btn-sm btn-warning addFoodBtn">Add Food</button>
+          <button class="btn btn-sm btn-danger addSymptomBtn">Add Symptom</button>
         </div>
       </div>`);
-      // Render diary entries for this hour
       const entries = state.diary.filter(e => e.datetime.startsWith(state.currentDate) && new Date(e.datetime).getHours() === h);
       entries.forEach(e=>{
-        const div = $('<div class="entry"></div>').text(e.type==='food'?`${e.name} (${e.quantity})`:`${e.name} Severity:${e.severity}`);
+        const div = $('<div class="entry"></div>').text(
+          e.type==='food' ? `${e.name} (${e.quantity})` : `${e.name} (Severity:${e.severity})`
+        );
         div.addClass(e.type==='food'?'food-entry':'symptom-entry');
-        slot.find('div.flex-1').append(div);
+        slot.find('.entries').append(div);
       });
-      slot.find('.addFoodBtn').click(()=>openFoodModal(hourStr));
-      slot.find('.addSymptomBtn').click(()=>openSymptomModal(hourStr));
+      slot.find('.addFoodBtn').click(()=>{
+        $('#foodTime').val(hourStr);
+        $('#foodModal').modal('show');
+      });
+      slot.find('.addSymptomBtn').click(()=>{
+        $('#symptomTime').val(hourStr);
+        $('#symptomModal').modal('show');
+      });
       $('#diaryGrid').append(slot);
     }
   }
@@ -165,28 +204,6 @@ $(function(){
     });
   }
 
-  function openFoodModal(hour){
-    $('#foodTime').val(hour);
-    $('#foodName').val('');
-    $('#foodQty').val('');
-    $('#foodAllergens').val('');
-    $('#foodModal').removeClass('hidden');
-    populateFoodSuggestions();
-  }
-
-  function openSymptomModal(hour){
-    $('#symptomTime').val(hour);
-    $('#symptomSelect').val('');
-    $('#customSymptom').val('');
-    $('#symptomSeverity').val(5);
-    $('#symptomFrequency').val('once');
-    $('#symptomModal').removeClass('hidden');
-    populateSymptomSelect();
-  }
-
-  $('#cancelFood').click(()=>$('#foodModal').addClass('hidden'));
-  $('#cancelSymptom').click(()=>$('#symptomModal').addClass('hidden'));
-
   $('#saveFood').click(()=>{
     const name = $('#foodName').val().trim();
     const qty = $('#foodQty').val().trim();
@@ -195,11 +212,11 @@ $(function(){
     if(!name || !time) return alert("Name and time required");
     const datetime = `${state.currentDate}T${time}`;
     state.diary.push({datetime, type:'food', name, quantity: qty, allergens});
-    // remember food
     if(!state.foods.find(f=>f.name.toLowerCase()===name.toLowerCase())) state.foods.push({name, allergens});
     saveState();
-    $('#foodModal').addClass('hidden');
+    $('#foodModal').modal('hide');
     renderDiary();
+    populateFoodSuggestions();
   });
 
   $('#saveSymptom').click(()=>{
@@ -213,11 +230,11 @@ $(function(){
     if(!time) return alert("Time required");
     const datetime = `${state.currentDate}T${time}`;
     state.diary.push({datetime, type:'symptom', name, severity, frequency});
-    // remember custom symptom
     if(custom && !state.symptoms.find(s=>s.name.toLowerCase()===custom.toLowerCase())) state.symptoms.push({name: custom, predefined:false});
     saveState();
-    $('#symptomModal').addClass('hidden');
+    $('#symptomModal').modal('hide');
     renderDiary();
+    populateSymptomSelect();
   });
 
   $('#prevDay').click(()=>{
@@ -234,20 +251,12 @@ $(function(){
     renderDiary();
   });
 
-  $('#viewReport').click(()=>{
-    generateReport();
-    $('#reportModal').removeClass('hidden');
-  });
-
-  $('#closeReport').click(()=>$('#reportModal').addClass('hidden'));
-
   function generateReport(){
     const report = {};
     const foods = state.foods.map(f=>f.name);
     foods.forEach(food=>{
       const foodEntries = state.diary.filter(d=>d.type==='food' && d.name===food);
       if(foodEntries.length===0) return;
-      // check symptoms within 6 hours after eating
       const relatedSymptoms = {};
       foodEntries.forEach(fe=>{
         const feTime = new Date(fe.datetime).getTime();
@@ -266,7 +275,7 @@ $(function(){
       html = '<p>No correlations found yet.</p>';
     } else {
       for(const food in report){
-        html += `<h3 class="font-semibold mt-2">${food}</h3><ul class="list-disc ml-5">`;
+        html += `<h6 class="mt-3">${food}</h6><ul>`;
         for(const symptom in report[food]){
           html += `<li>${symptom}: ${report[food][symptom]} occurrences</li>`;
         }
@@ -276,7 +285,9 @@ $(function(){
     $('#reportContent').html(html);
   }
 
-  // Initial load
+  $('#reportModal').on('show.bs.modal', generateReport);
+
+  // Initial
   loadState();
   renderDiary();
   populateSymptomSelect();
