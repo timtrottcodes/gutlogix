@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IBS Tracker</title>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.3/dist/tailwind.min.css" rel="stylesheet">
+<style>
+  .hour-slot { min-height: 60px; border-bottom: 1px solid #e5e7eb; position: relative; }
+  .entry { padding: 2px 4px; margin: 1px 0; border-radius: 4px; font-size: 0.875rem; }
+  .food-entry { background-color: #fef3c7; }
+  .symptom-entry { background-color: #fee2e2; }
+  .modal-bg { background: rgba(0,0,0,0.5); }
+</style>
+</head>
+<body class="bg-gray-50">
+
+<div class="container mx-auto p-4">
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">IBS Food & Symptom Tracker</h1>
+    <button id="viewReport" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">View Report</button>
+  </div>
+
+  <div class="flex justify-between items-center mb-2">
+    <button id="prevDay" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">&lt; Previous</button>
+    <span id="currentDate" class="font-semibold"></span>
+    <button id="nextDay" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">Next &gt;</button>
+  </div>
+
+  <div id="diaryGrid" class="border rounded bg-white">
+    <!-- Hourly slots will be generated here -->
+  </div>
+</div>
+
+<!-- Add Food Modal -->
+<div id="foodModal" class="hidden fixed inset-0 flex items-center justify-center modal-bg">
+  <div class="bg-white p-6 rounded shadow-lg w-96">
+    <h2 class="text-xl font-bold mb-4">Add Food</h2>
+    <label class="block mb-2">Food Name</label>
+    <input type="text" id="foodName" class="border w-full p-2 rounded mb-2" list="foodSuggestions">
+    <datalist id="foodSuggestions"></datalist>
+
+    <label class="block mb-2">Quantity</label>
+    <input type="text" id="foodQty" class="border w-full p-2 rounded mb-2">
+
+    <label class="block mb-2">Allergens (comma-separated)</label>
+    <input type="text" id="foodAllergens" class="border w-full p-2 rounded mb-2">
+
+    <label class="block mb-2">Time</label>
+    <input type="time" id="foodTime" class="border w-full p-2 rounded mb-4">
+
+    <div class="flex justify-end space-x-2">
+      <button id="cancelFood" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
+      <button id="saveFood" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Symptom Modal -->
+<div id="symptomModal" class="hidden fixed inset-0 flex items-center justify-center modal-bg">
+  <div class="bg-white p-6 rounded shadow-lg w-96">
+    <h2 class="text-xl font-bold mb-4">Add Symptom</h2>
+    <label class="block mb-2">Symptom</label>
+    <select id="symptomSelect" class="border w-full p-2 rounded mb-2">
+      <option value="">--Select--</option>
+    </select>
+    <input type="text" id="customSymptom" placeholder="Or add custom symptom" class="border w-full p-2 rounded mb-2">
+
+    <label class="block mb-2">Severity (1-10)</label>
+    <input type="number" id="symptomSeverity" min="1" max="10" class="border w-full p-2 rounded mb-2">
+
+    <label class="block mb-2">Frequency</label>
+    <select id="symptomFrequency" class="border w-full p-2 rounded mb-4">
+      <option value="once">Once</option>
+      <option value="hourly">Hourly</option>
+      <option value="constant">Constant</option>
+    </select>
+
+    <label class="block mb-2">Time</label>
+    <input type="time" id="symptomTime" class="border w-full p-2 rounded mb-4">
+
+    <div class="flex justify-end space-x-2">
+      <button id="cancelSymptom" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
+      <button id="saveSymptom" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Report Modal -->
+<div id="reportModal" class="hidden fixed inset-0 flex items-center justify-center modal-bg">
+  <div class="bg-white p-6 rounded shadow-lg w-2/3 max-h-[80vh] overflow-y-auto">
+    <h2 class="text-xl font-bold mb-4">Correlation Report</h2>
+    <div id="reportContent"></div>
+    <div class="flex justify-end mt-4">
+      <button id="closeReport" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+$(function(){
+
+  const predefinedSymptoms = [
+    "Abdominal pain", "Bloating", "Diarrhea", "Constipation", "Gas", "Urgency", "Fatigue"
+  ];
+
+  let state = {
+    foods: [],
+    symptoms: [],
+    diary: [],
+    currentDate: new Date().toISOString().split('T')[0]
+  };
+
+  // Load from localStorage
+  function loadState(){
+    const saved = localStorage.getItem('ibsTracker');
+    if(saved) state = JSON.parse(saved);
+  }
+
+  function saveState(){
+    localStorage.setItem('ibsTracker', JSON.stringify(state));
+  }
+
+  function renderDiary(){
+    $('#currentDate').text(state.currentDate);
+    $('#diaryGrid').empty();
+    for(let h=0; h<24; h++){
+      const hourStr = h.toString().padStart(2,'0') + ":00";
+      const slot = $(`<div class="hour-slot px-2 py-1 flex justify-between items-start">
+        <span class="w-16 font-semibold">${hourStr}</span>
+        <div class="flex-1 flex flex-col"></div>
+        <div class="space-x-1">
+          <button class="addFoodBtn bg-yellow-200 px-2 py-1 rounded text-sm hover:bg-yellow-300">Add Food</button>
+          <button class="addSymptomBtn bg-red-200 px-2 py-1 rounded text-sm hover:bg-red-300">Add Symptom</button>
+        </div>
+      </div>`);
+      // Render diary entries for this hour
+      const entries = state.diary.filter(e => e.datetime.startsWith(state.currentDate) && new Date(e.datetime).getHours() === h);
+      entries.forEach(e=>{
+        const div = $('<div class="entry"></div>').text(e.type==='food'?`${e.name} (${e.quantity})`:`${e.name} Severity:${e.severity}`);
+        div.addClass(e.type==='food'?'food-entry':'symptom-entry');
+        slot.find('div.flex-1').append(div);
+      });
+      slot.find('.addFoodBtn').click(()=>openFoodModal(hourStr));
+      slot.find('.addSymptomBtn').click(()=>openSymptomModal(hourStr));
+      $('#diaryGrid').append(slot);
+    }
+  }
+
+  function populateSymptomSelect(){
+    $('#symptomSelect').empty().append('<option value="">--Select--</option>');
+    predefinedSymptoms.forEach(s=>{
+      $('#symptomSelect').append(`<option value="${s}">${s}</option>`);
+    });
+    state.symptoms.forEach(s=>{
+      if(!predefinedSymptoms.includes(s.name)) $('#symptomSelect').append(`<option value="${s.name}">${s.name}</option>`);
+    });
+  }
+
+  function populateFoodSuggestions(){
+    $('#foodSuggestions').empty();
+    state.foods.forEach(f=>{
+      $('#foodSuggestions').append(`<option value="${f.name}">`);
+    });
+  }
+
+  function openFoodModal(hour){
+    $('#foodTime').val(hour);
+    $('#foodName').val('');
+    $('#foodQty').val('');
+    $('#foodAllergens').val('');
+    $('#foodModal').removeClass('hidden');
+    populateFoodSuggestions();
+  }
+
+  function openSymptomModal(hour){
+    $('#symptomTime').val(hour);
+    $('#symptomSelect').val('');
+    $('#customSymptom').val('');
+    $('#symptomSeverity').val(5);
+    $('#symptomFrequency').val('once');
+    $('#symptomModal').removeClass('hidden');
+    populateSymptomSelect();
+  }
+
+  $('#cancelFood').click(()=>$('#foodModal').addClass('hidden'));
+  $('#cancelSymptom').click(()=>$('#symptomModal').addClass('hidden'));
+
+  $('#saveFood').click(()=>{
+    const name = $('#foodName').val().trim();
+    const qty = $('#foodQty').val().trim();
+    const allergens = $('#foodAllergens').val().split(',').map(a=>a.trim()).filter(a=>a);
+    const time = $('#foodTime').val();
+    if(!name || !time) return alert("Name and time required");
+    const datetime = `${state.currentDate}T${time}`;
+    state.diary.push({datetime, type:'food', name, quantity: qty, allergens});
+    // remember food
+    if(!state.foods.find(f=>f.name.toLowerCase()===name.toLowerCase())) state.foods.push({name, allergens});
+    saveState();
+    $('#foodModal').addClass('hidden');
+    renderDiary();
+  });
+
+  $('#saveSymptom').click(()=>{
+    let name = $('#symptomSelect').val();
+    const custom = $('#customSymptom').val().trim();
+    if(custom) name = custom;
+    if(!name) return alert("Symptom required");
+    const severity = parseInt($('#symptomSeverity').val()) || 5;
+    const frequency = $('#symptomFrequency').val();
+    const time = $('#symptomTime').val();
+    if(!time) return alert("Time required");
+    const datetime = `${state.currentDate}T${time}`;
+    state.diary.push({datetime, type:'symptom', name, severity, frequency});
+    // remember custom symptom
+    if(custom && !state.symptoms.find(s=>s.name.toLowerCase()===custom.toLowerCase())) state.symptoms.push({name: custom, predefined:false});
+    saveState();
+    $('#symptomModal').addClass('hidden');
+    renderDiary();
+  });
+
+  $('#prevDay').click(()=>{
+    const d = new Date(state.currentDate);
+    d.setDate(d.getDate()-1);
+    state.currentDate = d.toISOString().split('T')[0];
+    renderDiary();
+  });
+
+  $('#nextDay').click(()=>{
+    const d = new Date(state.currentDate);
+    d.setDate(d.getDate()+1);
+    state.currentDate = d.toISOString().split('T')[0];
+    renderDiary();
+  });
+
+  $('#viewReport').click(()=>{
+    generateReport();
+    $('#reportModal').removeClass('hidden');
+  });
+
+  $('#closeReport').click(()=>$('#reportModal').addClass('hidden'));
+
+  function generateReport(){
+    const report = {};
+    const foods = state.foods.map(f=>f.name);
+    foods.forEach(food=>{
+      const foodEntries = state.diary.filter(d=>d.type==='food' && d.name===food);
+      if(foodEntries.length===0) return;
+      // check symptoms within 6 hours after eating
+      const relatedSymptoms = {};
+      foodEntries.forEach(fe=>{
+        const feTime = new Date(fe.datetime).getTime();
+        state.diary.filter(d=>d.type==='symptom').forEach(se=>{
+          const seTime = new Date(se.datetime).getTime();
+          if(seTime >= feTime && seTime <= feTime + 6*3600*1000){
+            relatedSymptoms[se.name] = (relatedSymptoms[se.name]||0)+1;
+          }
+        });
+      });
+      if(Object.keys(relatedSymptoms).length>0) report[food] = relatedSymptoms;
+    });
+
+    let html = '';
+    if(Object.keys(report).length===0){
+      html = '<p>No correlations found yet.</p>';
+    } else {
+      for(const food in report){
+        html += `<h3 class="font-semibold mt-2">${food}</h3><ul class="list-disc ml-5">`;
+        for(const symptom in report[food]){
+          html += `<li>${symptom}: ${report[food][symptom]} occurrences</li>`;
+        }
+        html += '</ul>';
+      }
+    }
+    $('#reportContent').html(html);
+  }
+
+  // Initial load
+  loadState();
+  renderDiary();
+  populateSymptomSelect();
+  populateFoodSuggestions();
+});
+</script>
+
+</body>
+</html>
