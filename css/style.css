@@ -1,0 +1,26 @@
+body {
+  background: #f8f9fa;
+}
+.hour-slot {
+  border-bottom: 1px solid #dee2e6;
+  padding: 8px;
+}
+.entry {
+  padding: 4px 8px;
+  margin: 4px 0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+.food-entry {
+  background-color: #fff3cd;
+}
+.symptom-entry {
+  background-color: #f8d7da;
+}
+.small-muted {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+.tom-select-custom .ts-control {
+  min-height: calc(1.5em + 1rem);
+}
