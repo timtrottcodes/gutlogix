@@ -248,9 +248,10 @@ $(function(){
     const results = {};
     const lookbackHours = 12;
 
-    // Expand diary into exposures and symptoms
     const exposures = [];
     const symptoms = [];
+
+    // Build exposures + symptoms list
     state.diary.forEach(entry => {
       if (entry.type === "food") {
         const food = state.foods.find(f => f.id === entry.foodId);
@@ -268,15 +269,18 @@ $(function(){
       }
     });
 
-    // Correlate symptoms with allergens
+    // Match symptoms against exposures
     symptoms.forEach(sym => {
       exposures.forEach(exp => {
-        const delta = (sym.datetime - exp.datetime) / (1000 * 60 * 60); // hours
+        const delta = (sym.datetime - exp.datetime) / (1000 * 60 * 60);
         if (delta > 0 && delta <= lookbackHours) {
           if (!results[exp.allergenId]) {
-            results[exp.allergenId] = { exposures: 0, symptomLinks: 0, symptoms: {} };
+            results[exp.allergenId] = { exposures: 0, symptomLinks: 0, weightedLinks: 0, symptoms: {} };
           }
           results[exp.allergenId].symptomLinks++;
+          results[exp.allergenId].weightedLinks += sym.severity; // severity weighting
+
+          // Track per-symptom stats
           const symStats = results[exp.allergenId].symptoms[sym.symptomId] || { count: 0, totalSeverity: 0, maxSeverity: 0 };
           symStats.count++;
           symStats.totalSeverity += sym.severity;
@@ -286,13 +290,13 @@ $(function(){
       });
     });
 
-    // Count total exposures
+    // Count exposures
     exposures.forEach(exp => {
-      results[exp.allergenId] = results[exp.allergenId] || { exposures: 0, symptomLinks: 0, symptoms: {} };
+      results[exp.allergenId] = results[exp.allergenId] || { exposures: 0, symptomLinks: 0, weightedLinks: 0, symptoms: {} };
       results[exp.allergenId].exposures++;
     });
 
-    // Build report
+    // Build final report
     const report = Object.keys(results).map(aid => {
       const allergen = state.allergens.find(a => a.id == aid);
       const r = results[aid];
@@ -300,7 +304,8 @@ $(function(){
         allergen: allergen ? allergen.name : "Unknown",
         exposures: r.exposures,
         symptomLinks: r.symptomLinks,
-        score: r.exposures > 0 ? (r.symptomLinks / r.exposures) : 0,
+        weightedLinks: r.weightedLinks,
+        score: r.exposures > 0 ? (r.weightedLinks / r.exposures) : 0, // severity-weighted
         symptoms: Object.keys(r.symptoms).map(sid => {
           const s = state.symptoms.find(sym => sym.id == sid);
           const stats = r.symptoms[sid];
@@ -318,7 +323,7 @@ $(function(){
   }
 
   // ---------- Report generation ----------
-  function generateReport(){
+  function generateReport() {
     const report = analyseTriggers();
     const container = document.getElementById('reportContent');
     container.innerHTML = "";
@@ -332,9 +337,12 @@ $(function(){
       const div = document.createElement('div');
       div.className = "mb-3";
       div.innerHTML = `
-        <h5>${item.allergen} — ${(item.score*100).toFixed(0)}% correlation</h5>
-        <p><strong>Exposures:</strong> ${item.exposures}, 
-          <strong>Linked to symptoms:</strong> ${item.symptomLinks}</p>
+        <h5>${item.allergen} — Score: ${item.score.toFixed(2)}</h5>
+        <p>
+          <strong>Exposures:</strong> ${item.exposures}, 
+          <strong>Symptom Links:</strong> ${item.symptomLinks}, 
+          <strong>Weighted by Severity:</strong> ${item.weightedLinks}
+        </p>
         <ul class="list-group">
           ${item.symptoms.map(s => `
             <li class="list-group-item d-flex justify-content-between align-items-center">
