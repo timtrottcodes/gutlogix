@@ -25,54 +25,73 @@ $(function(){
       state = JSON.parse(s);
     } else {
       state.allergens = [
-        {id:1, name:'Gluten'},
-        {id:2, name:'Dairy'},
-        {id:3, name:'FODMAP'},
-        {id:4, name:'Soy'},
-        {id:5, name:'Egg'},
-        {id:6, name:'Nuts'},
-        {id:7, name:'Shellfish'},
-        {id:8, name:'Caffeine'},
-        {id:9, name:'Alcohol'}
+        {id:1,  name:'Gluten (Wheat/Barley/Rye)', windowHours: 12},
+        {id:2,  name:'Dairy (Lactose)', windowHours: 6},
+        {id:3,  name:'FODMAP - High Fructose', windowHours: 12},
+        {id:4,  name:'FODMAP - Polyols (Sorbitol, Mannitol)', windowHours: 12},
+        {id:5,  name:'FODMAP - Fructans (Garlic, Onion)', windowHours: 24},
+        {id:6,  name:'FODMAP - Galactans (Beans, Lentils)', windowHours: 24},
+        {id:7,  name:'Soy', windowHours: 12},
+        {id:8,  name:'Egg', windowHours: 8},
+        {id:9,  name:'Peanut', windowHours: 4},
+        {id:10, name:'Tree Nuts (Almond, Cashew, Walnut)', windowHours: 6},
+        {id:11, name:'Fish', windowHours: 6},
+        {id:12, name:'Shellfish (Shrimp, Crab, Lobster)', windowHours: 6},
+        {id:13, name:'Sesame', windowHours: 8},
+        {id:14, name:'Caffeine (Coffee, Tea, Cola)', windowHours: 3},
+        {id:15, name:'Alcohol', windowHours: 4},
+        {id:16, name:'Artificial Sweeteners (Aspartame, Sucralose)', windowHours: 6},
+        {id:17, name:'Spicy Foods (Capsaicin)', windowHours: 3},
+        {id:18, name:'Fatty / Fried Foods', windowHours: 8},
+        {id:19, name:'Red Meat', windowHours: 12},
+        {id:20, name:'Chocolate', windowHours: 6},
+        {id:21, name:'Carbonated Drinks', windowHours: 2}
       ];
-      state.nextAllergenId = 10;
+      state.nextAllergenId = 22;
 
       state.foods = [
-        {id:1, name:'Bread', allergenIds:[1]},
-        {id:2, name:'Milk', allergenIds:[2]},
-        {id:3, name:'Cheese', allergenIds:[2]},
-        {id:4, name:'Yogurt', allergenIds:[2]},
-        {id:5, name:'Pasta', allergenIds:[1]},
-        {id:6, name:'Rice', allergenIds:[]},
-        {id:7, name:'Eggs', allergenIds:[5]},
-        {id:8, name:'Chicken', allergenIds:[]},
-        {id:9, name:'Beef', allergenIds:[]},
-        {id:10, name:'Fish', allergenIds:[7]},
-        {id:11, name:'Tofu', allergenIds:[4]},
-        {id:12, name:'Peanuts', allergenIds:[6]},
-        {id:13, name:'Almonds', allergenIds:[6]},
-        {id:14, name:'Beer', allergenIds:[1,9]},
-        {id:15, name:'Coffee', allergenIds:[8]},
-        {id:16, name:'Onions', allergenIds:[3]},
-        {id:17, name:'Garlic', allergenIds:[3]},
-        {id:18, name:'Apples', allergenIds:[3]},
-        {id:19, name:'Bananas', allergenIds:[]},
-        {id:20, name:'Chocolate', allergenIds:[2,8]}
+        {id:1, name:'White Bread', allergenIds:[1]},
+        {id:2, name:'Wholemeal Bread', allergenIds:[1]},
+        {id:3, name:'Milk', allergenIds:[2]},
+        {id:4, name:'Cheese', allergenIds:[2]},
+        {id:5, name:'Yogurt', allergenIds:[2]},
+        {id:6, name:'Beans (Kidney, Black)', allergenIds:[6]},
+        {id:7, name:'Lentils', allergenIds:[6]},
+        {id:8, name:'Onion', allergenIds:[5]},
+        {id:9, name:'Garlic', allergenIds:[5]},
+        {id:10, name:'Apple', allergenIds:[3,4]},
+        {id:11, name:'Pear', allergenIds:[4]},
+        {id:12, name:'Soy Milk', allergenIds:[7]},
+        {id:13, name:'Eggs', allergenIds:[8]},
+        {id:14, name:'Peanut Butter', allergenIds:[9]},
+        {id:15, name:'Almonds', allergenIds:[10]},
+        {id:16, name:'Salmon', allergenIds:[11]},
+        {id:17, name:'Shrimp', allergenIds:[12]},
+        {id:18, name:'Sesame Seeds', allergenIds:[13]},
+        {id:19, name:'Coffee', allergenIds:[14]},
+        {id:20, name:'Beer', allergenIds:[15,1]},
+        {id:21, name:'Diet Cola', allergenIds:[14,16]},
+        {id:22, name:'Chili Peppers', allergenIds:[17]},
+        {id:23, name:'Fried Chicken', allergenIds:[18,8]},
+        {id:24, name:'Steak', allergenIds:[19]},
+        {id:25, name:'Chocolate Bar', allergenIds:[20]},
+        {id:26, name:'Soda Water', allergenIds:[21]}
       ];
-      state.nextFoodId = 21;
+      state.nextFoodId = 27;
 
       state.symptoms = [
-        {id:1, name:'Bloating', allergenIds:[1,3,2]},
-        {id:2, name:'Diarrhea', allergenIds:[2,3,9]},
-        {id:3, name:'Constipation', allergenIds:[1,3]},
-        {id:4, name:'Abdominal Pain', allergenIds:[1,2,3]},
-        {id:5, name:'Gas/Flatulence', allergenIds:[3]},
-        {id:6, name:'Fatigue', allergenIds:[8,9]},
-        {id:7, name:'Nausea', allergenIds:[2,9]},
-        {id:8, name:'Headache', allergenIds:[8,9]},
-        {id:9, name:'Heartburn', allergenIds:[2,8,9]}
+        {id:1,  name:'Bloating', allergenIds:[1,2,3,4,5,6,21]},
+        {id:2,  name:'Diarrhea', allergenIds:[2,3,4,5,6,14,15,16,17]},
+        {id:3,  name:'Constipation', allergenIds:[1,19]},
+        {id:4,  name:'Abdominal Pain / Cramping', allergenIds:[1,2,3,4,5,6,18]},
+        {id:5,  name:'Gas / Flatulence', allergenIds:[3,4,5,6,21]},
+        {id:6,  name:'Nausea', allergenIds:[2,15,17,18]},
+        {id:7,  name:'Acid Reflux / Heartburn', allergenIds:[14,15,18,20]},
+        {id:8,  name:'Urgency (Sudden Need to Go)', allergenIds:[2,14,15]},
+        {id:9,  name:'Fatigue / Brain Fog', allergenIds:[1,2,14,15]},
+        {id:10, name:'Headache / Migraine', allergenIds:[2,14,15,20]}
       ];
-      state.nextSymptomId = 10;
+      state.nextSymptomId = 11;
 
       saveState();
     }
@@ -246,12 +265,10 @@ $(function(){
 
   function analyseTriggers() {
     const results = {};
-    const lookbackHours = 12;
-
     const exposures = [];
     const symptoms = [];
 
-    // Build exposures + symptoms list
+    // Build exposures and symptoms
     state.diary.forEach(entry => {
       if (entry.type === "food") {
         const food = state.foods.find(f => f.id === entry.foodId);
@@ -269,22 +286,27 @@ $(function(){
       }
     });
 
-    // Match symptoms against exposures
+    // Match symptoms to exposures
     symptoms.forEach(sym => {
       exposures.forEach(exp => {
-        const delta = (sym.datetime - exp.datetime) / (1000 * 60 * 60);
-        if (delta > 0 && delta <= lookbackHours) {
+        const allergen = state.allergens.find(a => a.id === exp.allergenId);
+        if (!allergen) return;
+
+        const delta = (sym.datetime - exp.datetime) / (1000 * 60 * 60); // hours
+        if (delta > 0 && delta <= allergen.windowHours) {
           if (!results[exp.allergenId]) {
-            results[exp.allergenId] = { exposures: 0, symptomLinks: 0, weightedLinks: 0, symptoms: {} };
+            results[exp.allergenId] = { exposures: 0, symptomLinks: 0, weightedLinks: 0, symptoms: {}, timeDeltas: [] };
           }
           results[exp.allergenId].symptomLinks++;
-          results[exp.allergenId].weightedLinks += sym.severity; // severity weighting
+          results[exp.allergenId].weightedLinks += sym.severity;
+          results[exp.allergenId].timeDeltas.push(delta);
 
           // Track per-symptom stats
-          const symStats = results[exp.allergenId].symptoms[sym.symptomId] || { count: 0, totalSeverity: 0, maxSeverity: 0 };
+          const symStats = results[exp.allergenId].symptoms[sym.symptomId] || { count: 0, totalSeverity: 0, maxSeverity: 0, times: [] };
           symStats.count++;
           symStats.totalSeverity += sym.severity;
           symStats.maxSeverity = Math.max(symStats.maxSeverity, sym.severity);
+          symStats.times.push(delta);
           results[exp.allergenId].symptoms[sym.symptomId] = symStats;
         }
       });
@@ -292,7 +314,7 @@ $(function(){
 
     // Count exposures
     exposures.forEach(exp => {
-      results[exp.allergenId] = results[exp.allergenId] || { exposures: 0, symptomLinks: 0, weightedLinks: 0, symptoms: {} };
+      results[exp.allergenId] = results[exp.allergenId] || { exposures: 0, symptomLinks: 0, weightedLinks: 0, symptoms: {}, timeDeltas: [] };
       results[exp.allergenId].exposures++;
     });
 
@@ -300,20 +322,29 @@ $(function(){
     const report = Object.keys(results).map(aid => {
       const allergen = state.allergens.find(a => a.id == aid);
       const r = results[aid];
+      const avgTime = r.timeDeltas.length > 0
+        ? (r.timeDeltas.reduce((a,b) => a+b, 0) / r.timeDeltas.length).toFixed(1)
+        : "—";
       return {
         allergen: allergen ? allergen.name : "Unknown",
         exposures: r.exposures,
         symptomLinks: r.symptomLinks,
         weightedLinks: r.weightedLinks,
-        score: r.exposures > 0 ? (r.weightedLinks / r.exposures) : 0, // severity-weighted
+        score: r.exposures > 0 ? (r.weightedLinks / r.exposures) : 0,
+        avgTimeToSymptom: avgTime,
+        windowHours: allergen ? allergen.windowHours : "—",
         symptoms: Object.keys(r.symptoms).map(sid => {
           const s = state.symptoms.find(sym => sym.id == sid);
           const stats = r.symptoms[sid];
+          const avgTime = stats.times.length > 0
+            ? (stats.times.reduce((a,b)=>a+b,0) / stats.times.length).toFixed(1)
+            : "—";
           return {
             symptom: s ? s.name : "Unknown",
             count: stats.count,
             avgSeverity: (stats.totalSeverity / stats.count).toFixed(1),
-            maxSeverity: stats.maxSeverity
+            maxSeverity: stats.maxSeverity,
+            avgTime: avgTime
           };
         })
       };
@@ -341,14 +372,15 @@ $(function(){
         <p>
           <strong>Exposures:</strong> ${item.exposures}, 
           <strong>Symptom Links:</strong> ${item.symptomLinks}, 
-          <strong>Weighted by Severity:</strong> ${item.weightedLinks}
+          <strong>Weighted Severity:</strong> ${item.weightedLinks}<br/>
+          <strong>Avg Time to Symptom:</strong> ${item.avgTimeToSymptom}h (Window: ${item.windowHours}h)
         </p>
         <ul class="list-group">
           ${item.symptoms.map(s => `
             <li class="list-group-item d-flex justify-content-between align-items-center">
               ${s.symptom}
               <span>
-                Count: ${s.count}, Avg Severity: ${s.avgSeverity}, Max: ${s.maxSeverity}
+                Count: ${s.count}, Avg Severity: ${s.avgSeverity}, Max: ${s.maxSeverity}, Avg Time: ${s.avgTime}h
               </span>
             </li>
           `).join("")}
