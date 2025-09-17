@@ -244,52 +244,110 @@ $(function(){
     }
   }
 
+  function analyseTriggers() {
+    const results = {};
+    const lookbackHours = 12;
+
+    // Expand diary into exposures and symptoms
+    const exposures = [];
+    const symptoms = [];
+    state.diary.forEach(entry => {
+      if (entry.type === "food") {
+        const food = state.foods.find(f => f.id === entry.foodId);
+        if (food) {
+          food.allergenIds.forEach(aid => {
+            exposures.push({ datetime: new Date(entry.datetime), allergenId: aid });
+          });
+        }
+      } else if (entry.type === "symptom") {
+        symptoms.push({
+          datetime: new Date(entry.datetime),
+          symptomId: entry.symptomId,
+          severity: entry.severity
+        });
+      }
+    });
+
+    // Correlate symptoms with allergens
+    symptoms.forEach(sym => {
+      exposures.forEach(exp => {
+        const delta = (sym.datetime - exp.datetime) / (1000 * 60 * 60); // hours
+        if (delta > 0 && delta <= lookbackHours) {
+          if (!results[exp.allergenId]) {
+            results[exp.allergenId] = { exposures: 0, symptomLinks: 0, symptoms: {} };
+          }
+          results[exp.allergenId].symptomLinks++;
+          const symStats = results[exp.allergenId].symptoms[sym.symptomId] || { count: 0, totalSeverity: 0, maxSeverity: 0 };
+          symStats.count++;
+          symStats.totalSeverity += sym.severity;
+          symStats.maxSeverity = Math.max(symStats.maxSeverity, sym.severity);
+          results[exp.allergenId].symptoms[sym.symptomId] = symStats;
+        }
+      });
+    });
+
+    // Count total exposures
+    exposures.forEach(exp => {
+      results[exp.allergenId] = results[exp.allergenId] || { exposures: 0, symptomLinks: 0, symptoms: {} };
+      results[exp.allergenId].exposures++;
+    });
+
+    // Build report
+    const report = Object.keys(results).map(aid => {
+      const allergen = state.allergens.find(a => a.id == aid);
+      const r = results[aid];
+      return {
+        allergen: allergen ? allergen.name : "Unknown",
+        exposures: r.exposures,
+        symptomLinks: r.symptomLinks,
+        score: r.exposures > 0 ? (r.symptomLinks / r.exposures) : 0,
+        symptoms: Object.keys(r.symptoms).map(sid => {
+          const s = state.symptoms.find(sym => sym.id == sid);
+          const stats = r.symptoms[sid];
+          return {
+            symptom: s ? s.name : "Unknown",
+            count: stats.count,
+            avgSeverity: (stats.totalSeverity / stats.count).toFixed(1),
+            maxSeverity: stats.maxSeverity
+          };
+        })
+      };
+    }).sort((a,b) => b.score - a.score);
+
+    return report;
+  }
+
   // ---------- Report generation ----------
   function generateReport(){
-    // basic food->symptom occurrences within 6 hours
-    const report = {};
-    state.foods.forEach(food=>{
-      const foodEntries = state.diary.filter(d=>d.type==='food' && d.foodId===food.id);
-      if(foodEntries.length===0) return;
-      const counts = {};
-      foodEntries.forEach(fe=>{
-        const feTime = new Date(fe.datetime).getTime();
-        state.diary.filter(d=>d.type==='symptom').forEach(se=>{
-          const seTime = new Date(se.datetime).getTime();
-          if(seTime >= feTime && seTime <= feTime + 6*3600*1000){
-            const s = state.symptoms.find(x=>x.id===se.symptomId);
-            const sname = s ? s.name : ('symptom#' + se.symptomId);
-            counts[sname] = (counts[sname]||0) + 1;
-          }
-        });
-      });
-      if(Object.keys(counts).length>0) report[food.name] = counts;
-    });
+    const report = analyseTriggers();
+    const container = document.getElementById('reportContent');
+    container.innerHTML = "";
 
-    // Build HTML
-    let html = '';
-    if(Object.keys(report).length === 0){
-      html = '<p>No correlations found yet (no symptoms found within 6 hours of foods).</p>';
-    } else {
-      for(const foodName in report){
-        html += `<h6 class="mt-3">${escapeHtml(foodName)}</h6><ul>`;
-        for(const s in report[foodName]){
-          html += `<li>${escapeHtml(s)}: ${report[foodName][s]} occurrence(s)</li>`;
-        }
-        html += '</ul>';
-      }
+    if (report.length === 0) {
+      container.innerHTML = "<p>No correlations found yet.</p>";
+      return;
     }
 
-    // Also show counts per allergen (simple heuristic)
-    html += '<hr/><h6>Allergen usage (master list)</h6><ul>';
-    state.allergens.forEach(a=>{
-      const countFoods = state.foods.filter(f=>f.allergenIds.includes(a.id)).length;
-      const countSymptoms = state.symptoms.filter(s=>s.allergenIds.includes(a.id)).length;
-      html += `<li>${escapeHtml(a.name)} — linked to ${countFoods} food(s), ${countSymptoms} symptom(s)</li>`;
+    report.forEach(item => {
+      const div = document.createElement('div');
+      div.className = "mb-3";
+      div.innerHTML = `
+        <h5>${item.allergen} — ${(item.score*100).toFixed(0)}% correlation</h5>
+        <p><strong>Exposures:</strong> ${item.exposures}, 
+          <strong>Linked to symptoms:</strong> ${item.symptomLinks}</p>
+        <ul class="list-group">
+          ${item.symptoms.map(s => `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              ${s.symptom}
+              <span>
+                Count: ${s.count}, Avg Severity: ${s.avgSeverity}, Max: ${s.maxSeverity}
+              </span>
+            </li>
+          `).join("")}
+        </ul>
+      `;
+      container.appendChild(div);
     });
-    html += '</ul>';
-
-    $('#reportContent').html(html);
   }
 
   // ---------- Manage Foods logic ----------
