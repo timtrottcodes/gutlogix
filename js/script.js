@@ -209,11 +209,12 @@ $(function(){
   }
 
   // ---------- Diary render ----------
-  function renderDiary(){
+  function renderDiary() {
     $('#currentDate').text(state.currentDate);
     $('#diaryGrid').empty();
-    for(let h=0; h<24; h++){
-      const hourStr = h.toString().padStart(2,'0') + ':00';
+
+    for (let h = 0; h < 24; h++) {
+      const hourStr = h.toString().padStart(2, '0') + ':00';
       const row = $(`
         <div class="hour-slot row align-items-start">
           <div class="col-2 fw-bold">${hourStr}</div>
@@ -223,45 +224,138 @@ $(function(){
             <button class="btn btn-sm btn-danger addSymptomBtn">Add Symptom</button>
           </div>
         </div>`);
+
       // find entries for this hour
-      const entries = state.diary.filter(d => d.datetime.startsWith(state.currentDate) && new Date(d.datetime).getHours()===h);
-      entries.forEach(e=>{
+      const entries = state.diary.filter(d =>
+        d.datetime.startsWith(state.currentDate) &&
+        new Date(d.datetime).getHours() === h
+      );
+
+      entries.forEach((e) => {
         let text = '';
-        if(e.type==='food'){
-          const f = state.foods.find(ff=>ff.id===e.foodId);
-          text = f ? `${f.name}${e.quantity?(' • '+e.quantity):''}` : `Unknown food • ${e.quantity||''}`;
-        } else if(e.type==='symptom'){
-          const s = state.symptoms.find(ss=>ss.id===e.symptomId);
+        if (e.type === 'food') {
+          const f = state.foods.find(ff => ff.id === e.foodId);
+          text = f ? `${f.name}${e.quantity ? (' • ' + e.quantity) : ''}` : `Unknown food • ${e.quantity || ''}`;
+        } else if (e.type === 'symptom') {
+          const s = state.symptoms.find(ss => ss.id === e.symptomId);
           text = s ? `${s.name} • severity ${e.severity}` : `Unknown symptom • severity ${e.severity}`;
         }
-        const div = $(`<div class="entry ${e.type==='food' ? 'food-entry' : 'symptom-entry'}">${escapeHtml(text)}</div>`);
+
+        const div = $(`
+          <div class="entry ${e.type === 'food' ? 'food-entry' : 'symptom-entry'} d-flex justify-content-between align-items-center" style="cursor:pointer;">
+            <span>${escapeHtml(text)}</span>
+            <button class="btn btn-sm btn-outline-danger btn-delete" style="display:none;padding: 2px;line-height: 1em;">&times;</button>
+          </div>
+        `);
+
+        // click to edit
+        div.on('click', function (evt) {
+          if ($(evt.target).hasClass('btn-delete')) return; // skip if delete clicked
+
+          if (e.type === 'food') {
+            // ensure select options exist
+            populateFoodSelect();
+
+            $('#foodModal .modal-title').text('Edit Food Entry');
+            // set select (as string) and trigger change so quick-new logic runs
+            $('#foodSelect').val(String(e.foodId)).trigger('change');
+
+            // hide quick new unless user selected "new"
+            if ($('#foodSelect').val() === 'new') {
+              $('#quickNewFood').removeClass('d-none');
+            } else {
+              $('#quickNewFood').addClass('d-none');
+            }
+
+            $('#quickFoodName').val(''); // only used if 'new' selected
+            $('#foodQty').val(e.quantity || '');
+
+            // set time input to entry's actual hh:mm
+            const dt = new Date(e.datetime);
+            const hh = String(dt.getHours()).padStart(2,'0');
+            const mm = String(dt.getMinutes()).padStart(2,'0');
+            $('#foodTime').val(`${hh}:${mm}`);
+
+            $('#foodModalSave').data('editIndex', state.diary.indexOf(e));
+            $('#foodModal').modal('show');
+
+          } else if (e.type === 'symptom') {
+            // ensure symptom select populated
+            populateSymptomSelect();
+
+            $('#symptomModal .modal-title').text('Edit Symptom Entry');
+            $('#symptomSelect').val(String(e.symptomId)).trigger('change');
+            $('#quickSymptomName').val('');
+            $('#symptomSeverity').val(e.severity || 5);
+            $('#symptomFrequency').val(e.frequency || 'once');
+
+            const dt = new Date(e.datetime);
+            const hh = String(dt.getHours()).padStart(2,'0');
+            const mm = String(dt.getMinutes()).padStart(2,'0');
+            $('#symptomTime').val(`${hh}:${mm}`);
+
+            // if you use tsSymptomAllergens for the quick-new-symptom tags you could populate them here if needed
+
+            $('#symptomModalSave').data('editIndex', state.diary.indexOf(e));
+            $('#symptomModal').modal('show');
+          }
+        });
+
+        // hover to show delete button
+        div.hover(
+          () => div.find('.btn-delete').show(),
+          () => div.find('.btn-delete').hide()
+        );
+
+        // delete handler
+        div.find('.btn-delete').on('click', (ev) => {
+          ev.stopPropagation();
+          if (confirm('Delete this entry?')) {
+            const idxInDiary = state.diary.indexOf(e);
+            if (idxInDiary > -1) {
+              state.diary.splice(idxInDiary, 1);
+              saveState();
+              renderDiary();
+            }
+          }
+        });
+
         row.find('.entries').append(div);
       });
 
       // bind add buttons
-      row.find('.addFoodBtn').click(()=>{
+      row.find('.addFoodBtn').off('click').on('click', () => {
+        // Reset to Add mode
+        $('#foodModal .modal-title').text('Add Food (Diary)');
         $('#foodTime').val(hourStr);
-        $('#foodSelect').val('');
+        // ensure food options available
+        populateFoodSelect();
+        $('#foodSelect').val('').trigger('change');
         $('#quickNewFood').addClass('d-none');
         $('#quickFoodName').val('');
         $('#foodQty').val('');
-        // reset quickFoodAllergens TomSelect values
-        if(tsQuickFoodAllergens) tsQuickFoodAllergens.clear();
+        if (tsQuickFoodAllergens) tsQuickFoodAllergens.clear();
+        $('#foodModalSave').removeData('editIndex');
         $('#foodModal').modal('show');
       });
-      row.find('.addSymptomBtn').click(()=>{
+
+      row.find('.addSymptomBtn').off('click').on('click', () => {
+        $('#symptomModal .modal-title').text('Add Symptom (Diary)');
         $('#symptomTime').val(hourStr);
-        $('#symptomSelect').val('');
+        populateSymptomSelect();
+        $('#symptomSelect').val('').trigger('change');
         $('#quickSymptomName').val('');
         $('#symptomSeverity').val(5);
         $('#symptomFrequency').val('once');
-        if(tsSymptomAllergens) tsSymptomAllergens.clear();
+        if (tsSymptomAllergens) tsSymptomAllergens.clear();
+        $('#symptomModalSave').removeData('editIndex');
         $('#symptomModal').modal('show');
       });
 
       $('#diaryGrid').append(row);
     }
   }
+
 
   function analyseTriggers() {
     const results = {};
@@ -547,56 +641,88 @@ $(function(){
     }
   });
 
-  $('#foodModalSave').click(()=>{
+  $('#foodModalSave').off('click').on('click', function(){
     const sel = $('#foodSelect').val();
     let foodId;
-    if(sel === 'new'){
+
+    if (sel === 'new') {
       const name = $('#quickFoodName').val().trim();
-      if(!name) return alert('New food name required');
-      // grab selected allergen ids from tsQuickFoodAllergens
-      const selected = tsQuickFoodAllergens.getValue() || [];
-      const allergenIds = (Array.isArray(selected) ? selected : (selected?selected.split(','):[])).map(v=>Number(v));
-      // create any new allergen strings shouldn't be present since create handler creates ids
+      if (!name) { alert('Please enter a name for the new food'); return; }
+      // get allergen ids from TomSelect
+      const selectedAllergenValues = tsQuickFoodAllergens.getValue() || [];
+      const allergenIds = (Array.isArray(selectedAllergenValues) ? selectedAllergenValues : (selectedAllergenValues?selectedAllergenValues.split(','):[])).map(v=>Number(v));
       const id = state.nextFoodId++;
-      state.foods.push({id, name, allergenIds});
+      state.foods.push({ id, name, allergenIds });
       foodId = id;
       populateFoodSelect();
     } else {
       foodId = Number(sel);
     }
+
     const qty = $('#foodQty').val().trim();
     const time = $('#foodTime').val();
-    if(!time) return alert('Time required');
-    const dt = `${state.currentDate}T${time}`;
-    state.diary.push({datetime:dt, type:'food', foodId, quantity:qty});
+    if (!time) { alert('Please set a time'); return; }
+    const datetime = `${state.currentDate}T${time}`;
+
+    const editIndex = $('#foodModalSave').data('editIndex');
+    if (typeof editIndex !== 'undefined') {
+      // update existing entry
+      const entry = state.diary[editIndex];
+      if (entry) {
+        entry.type = 'food';
+        entry.foodId = foodId;
+        entry.quantity = qty;
+        entry.datetime = datetime;
+      }
+    } else {
+      // add new
+      state.diary.push({ datetime, type: 'food', foodId, quantity: qty });
+    }
+
     saveState();
     $('#foodModal').modal('hide');
     renderDiary();
   });
 
   // ---------- Add Symptom to Diary (symptomModal) ----------
-  $('#symptomModalSave').click(()=>{
-    let sel = $('#symptomSelect').val();
+  $('#symptomModalSave').off('click').on('click', function(){
+    const sel = $('#symptomSelect').val();
     const quick = $('#quickSymptomName').val().trim();
     let symptomId;
-    if(quick){
-      // if quick provided, create new symptom with selected allergen tags
+
+    if (quick) {
+      // create new symptom (and link allergens if selected)
       const selected = tsSymptomAllergens.getValue() || [];
       const allergenIds = (Array.isArray(selected) ? selected : (selected?selected.split(','):[])).map(v=>Number(v));
       symptomId = state.nextSymptomId++;
-      state.symptoms.push({id:symptomId, name: quick, allergenIds});
+      state.symptoms.push({ id: symptomId, name: quick, allergenIds });
       populateSymptomSelect();
-    } else if(sel){
+    } else if (sel) {
       symptomId = Number(sel);
     } else {
-      return alert('Select symptom or enter a new name');
+      alert('Please select or enter a symptom name'); return;
     }
+
     const severity = Number($('#symptomSeverity').val()) || 5;
     const frequency = $('#symptomFrequency').val();
     const time = $('#symptomTime').val();
-    if(!time) return alert('Time required');
-    const dt = `${state.currentDate}T${time}`;
-    state.diary.push({datetime:dt, type:'symptom', symptomId, severity, frequency});
+    if (!time) { alert('Please set a time'); return; }
+    const datetime = `${state.currentDate}T${time}`;
+
+    const editIndex = $('#symptomModalSave').data('editIndex');
+    if (typeof editIndex !== 'undefined') {
+      const entry = state.diary[editIndex];
+      if (entry) {
+        entry.type = 'symptom';
+        entry.symptomId = symptomId;
+        entry.severity = severity;
+        entry.frequency = frequency;
+        entry.datetime = datetime;
+      }
+    } else {
+      state.diary.push({ datetime, type: 'symptom', symptomId, severity, frequency });
+    }
+
     saveState();
     $('#symptomModal').modal('hide');
     renderDiary();
@@ -614,12 +740,6 @@ $(function(){
     d.setDate(d.getDate()+1);
     state.currentDate = d.toISOString().split('T')[0];
     renderDiary();
-  });
-
-  // ---------- Modal show handlers to ensure selects are populated ----------
-  $('#foodModal').on('show.bs.modal', function(){
-    populateFoodSelect();
-    // initialize quickFoodAllergens TomSelect already handled globally
   });
 
   $('#manageFoodsModal').on('show.bs.modal', function(){
