@@ -20,94 +20,112 @@ $(function(){
 
   // Load from localStorage
   function loadState(){
-    const s = localStorage.getItem('ibsTracker_v2');
-    if(s) {
-      state = JSON.parse(s);
-    } else {
-      state.allergens = [
-        {id:1,  name:'Gluten (Wheat/Barley/Rye)', windowHours: 12},
-        {id:2,  name:'Dairy (Lactose)', windowHours: 6},
-        {id:3,  name:'FODMAP - High Fructose', windowHours: 12},
-        {id:4,  name:'FODMAP - Polyols (Sorbitol, Mannitol)', windowHours: 12},
-        {id:5,  name:'FODMAP - Fructans (Garlic, Onion)', windowHours: 24},
-        {id:6,  name:'FODMAP - Galactans (Beans, Lentils)', windowHours: 24},
-        {id:7,  name:'Soy', windowHours: 12},
-        {id:8,  name:'Egg', windowHours: 8},
-        {id:9,  name:'Peanut', windowHours: 4},
-        {id:10, name:'Tree Nuts (Almond, Cashew, Walnut)', windowHours: 6},
-        {id:11, name:'Fish', windowHours: 6},
-        {id:12, name:'Shellfish (Shrimp, Crab, Lobster)', windowHours: 6},
-        {id:13, name:'Sesame', windowHours: 8},
-        {id:14, name:'Caffeine (Coffee, Tea, Cola)', windowHours: 3},
-        {id:15, name:'Alcohol', windowHours: 4},
-        {id:16, name:'Artificial Sweeteners (Aspartame, Sucralose)', windowHours: 6},
-        {id:17, name:'Spicy Foods (Capsaicin)', windowHours: 3},
-        {id:18, name:'Fatty / Fried Foods', windowHours: 8},
-        {id:19, name:'Red Meat', windowHours: 12},
-        {id:20, name:'Chocolate', windowHours: 6},
-        {id:21, name:'Carbonated Drinks', windowHours: 2}
-      ];
-      state.nextAllergenId = 22;
-
-      state.foods = [
-        {id:1, name:'White Bread', allergenIds:[1]},
-        {id:2, name:'Wholemeal Bread', allergenIds:[1]},
-        {id:3, name:'Milk', allergenIds:[2]},
-        {id:4, name:'Cheese', allergenIds:[2]},
-        {id:5, name:'Yogurt', allergenIds:[2]},
-        {id:6, name:'Beans (Kidney, Black)', allergenIds:[6]},
-        {id:7, name:'Lentils', allergenIds:[6]},
-        {id:8, name:'Onion', allergenIds:[5]},
-        {id:9, name:'Garlic', allergenIds:[5]},
-        {id:10, name:'Apple', allergenIds:[3,4]},
-        {id:11, name:'Pear', allergenIds:[4]},
-        {id:12, name:'Soy Milk', allergenIds:[7]},
-        {id:13, name:'Eggs', allergenIds:[8]},
-        {id:14, name:'Peanut Butter', allergenIds:[9]},
-        {id:15, name:'Almonds', allergenIds:[10]},
-        {id:16, name:'Salmon', allergenIds:[11]},
-        {id:17, name:'Shrimp', allergenIds:[12]},
-        {id:18, name:'Sesame Seeds', allergenIds:[13]},
-        {id:19, name:'Coffee', allergenIds:[14]},
-        {id:20, name:'Beer', allergenIds:[15,1]},
-        {id:21, name:'Diet Cola', allergenIds:[14,16]},
-        {id:22, name:'Chili Peppers', allergenIds:[17]},
-        {id:23, name:'Fried Chicken', allergenIds:[18,8]},
-        {id:24, name:'Steak', allergenIds:[19]},
-        {id:25, name:'Chocolate Bar', allergenIds:[20]},
-        {id:26, name:'Soda Water', allergenIds:[21]}
-      ];
-      state.nextFoodId = 27;
-
-      state.symptoms = [
-        {id:1,  name:'Bloating', allergenIds:[1,2,3,4,5,6,21]},
-        {id:2,  name:'Diarrhea', allergenIds:[2,3,4,5,6,14,15,16,17]},
-        {id:3,  name:'Constipation', allergenIds:[1,19]},
-        {id:4,  name:'Abdominal Pain / Cramping', allergenIds:[1,2,3,4,5,6,18]},
-        {id:5,  name:'Gas / Flatulence', allergenIds:[3,4,5,6,21]},
-        {id:6,  name:'Nausea', allergenIds:[2,15,17,18]},
-        {id:7,  name:'Acid Reflux / Heartburn', allergenIds:[14,15,18,20]},
-        {id:8,  name:'Urgency (Sudden Need to Go)', allergenIds:[2,14,15]},
-        {id:9,  name:'Fatigue / Brain Fog', allergenIds:[1,2,14,15]},
-        {id:10, name:'Headache / Migraine', allergenIds:[2,14,15,20]}
-      ];
-      state.nextSymptomId = 11;
-
-      saveState();
+    try {
+      const s = localStorage.getItem('ibsTracker_v2');
+      if(s) {
+        state = JSON.parse(s);
+      } else {
+        initializeDefaultState();
+      }
+    } catch(e) {
+      console.error('Failed to load state from localStorage:', e);
+      alert('Failed to load saved data. Starting with default data. Error: ' + e.message);
+      initializeDefaultState();
     }
   }
-  function saveState(){ localStorage.setItem('ibsTracker_v2', JSON.stringify(state)); }
+
+  function initializeDefaultState(){
+    state.allergens = [
+      {id:1,  name:'Gluten (Wheat/Barley/Rye)', windowHours: 12},
+      {id:2,  name:'Dairy (Lactose)', windowHours: 6},
+      {id:3,  name:'FODMAP - High Fructose', windowHours: 12},
+      {id:4,  name:'FODMAP - Polyols (Sorbitol, Mannitol)', windowHours: 12},
+      {id:5,  name:'FODMAP - Fructans (Garlic, Onion)', windowHours: 24},
+      {id:6,  name:'FODMAP - Galactans (Beans, Lentils)', windowHours: 24},
+      {id:7,  name:'Soy', windowHours: 12},
+      {id:8,  name:'Egg', windowHours: 8},
+      {id:9,  name:'Peanut', windowHours: 4},
+      {id:10, name:'Tree Nuts (Almond, Cashew, Walnut)', windowHours: 6},
+      {id:11, name:'Fish', windowHours: 6},
+      {id:12, name:'Shellfish (Shrimp, Crab, Lobster)', windowHours: 6},
+      {id:13, name:'Sesame', windowHours: 8},
+      {id:14, name:'Caffeine (Coffee, Tea, Cola)', windowHours: 3},
+      {id:15, name:'Alcohol', windowHours: 4},
+      {id:16, name:'Artificial Sweeteners (Aspartame, Sucralose)', windowHours: 6},
+      {id:17, name:'Spicy Foods (Capsaicin)', windowHours: 3},
+      {id:18, name:'Fatty / Fried Foods', windowHours: 8},
+      {id:19, name:'Red Meat', windowHours: 12},
+      {id:20, name:'Chocolate', windowHours: 6},
+      {id:21, name:'Carbonated Drinks', windowHours: 2}
+    ];
+    state.nextAllergenId = 22;
+
+    state.foods = [
+      {id:1, name:'White Bread', allergenIds:[1]},
+      {id:2, name:'Wholemeal Bread', allergenIds:[1]},
+      {id:3, name:'Milk', allergenIds:[2]},
+      {id:4, name:'Cheese', allergenIds:[2]},
+      {id:5, name:'Yogurt', allergenIds:[2]},
+      {id:6, name:'Beans (Kidney, Black)', allergenIds:[6]},
+      {id:7, name:'Lentils', allergenIds:[6]},
+      {id:8, name:'Onion', allergenIds:[5]},
+      {id:9, name:'Garlic', allergenIds:[5]},
+      {id:10, name:'Apple', allergenIds:[3,4]},
+      {id:11, name:'Pear', allergenIds:[4]},
+      {id:12, name:'Soy Milk', allergenIds:[7]},
+      {id:13, name:'Eggs', allergenIds:[8]},
+      {id:14, name:'Peanut Butter', allergenIds:[9]},
+      {id:15, name:'Almonds', allergenIds:[10]},
+      {id:16, name:'Salmon', allergenIds:[11]},
+      {id:17, name:'Shrimp', allergenIds:[12]},
+      {id:18, name:'Sesame Seeds', allergenIds:[13]},
+      {id:19, name:'Coffee', allergenIds:[14]},
+      {id:20, name:'Beer', allergenIds:[15,1]},
+      {id:21, name:'Diet Cola', allergenIds:[14,16]},
+      {id:22, name:'Chili Peppers', allergenIds:[17]},
+      {id:23, name:'Fried Chicken', allergenIds:[18,8]},
+      {id:24, name:'Steak', allergenIds:[19]},
+      {id:25, name:'Chocolate Bar', allergenIds:[20]},
+      {id:26, name:'Soda Water', allergenIds:[21]}
+    ];
+    state.nextFoodId = 27;
+
+    state.symptoms = [
+      {id:1,  name:'Bloating', allergenIds:[1,2,3,4,5,6,21]},
+      {id:2,  name:'Diarrhea', allergenIds:[2,3,4,5,6,14,15,16,17]},
+      {id:3,  name:'Constipation', allergenIds:[1,19]},
+      {id:4,  name:'Abdominal Pain / Cramping', allergenIds:[1,2,3,4,5,6,18]},
+      {id:5,  name:'Gas / Flatulence', allergenIds:[3,4,5,6,21]},
+      {id:6,  name:'Nausea', allergenIds:[2,15,17,18]},
+      {id:7,  name:'Acid Reflux / Heartburn', allergenIds:[14,15,18,20]},
+      {id:8,  name:'Urgency (Sudden Need to Go)', allergenIds:[2,14,15]},
+      {id:9,  name:'Fatigue / Brain Fog', allergenIds:[1,2,14,15]},
+      {id:10, name:'Headache / Migraine', allergenIds:[2,14,15,20]}
+    ];
+    state.nextSymptomId = 11;
+
+    saveState();
+  }
+
+  function saveState(){
+    try {
+      localStorage.setItem('ibsTracker_v2', JSON.stringify(state));
+    } catch(e) {
+      console.error('Failed to save state to localStorage:', e);
+      alert('Failed to save data. Your changes may not persist. Error: ' + e.message);
+    }
+  }
 
   // ---------- TomSelect instances (will initialize later) ----------
   let tsQuickFoodAllergens, tsManageFoodAllergens, tsSymptomAllergens, tsManageSymptomAllergens;
 
   // ---------- Helpers ----------
   function findAllergenByName(name){ return state.allergens.find(a=>a.name.toLowerCase()===name.toLowerCase()); }
-  function createAllergen(name){
+  function createAllergen(name, windowHours = 12){
     const existing = findAllergenByName(name);
     if(existing) return existing.id;
     const id = state.nextAllergenId++;
-    const obj = {id, name};
+    const obj = {id, name, windowHours};
     state.allergens.push(obj);
     saveState();
     refreshAllergenTomSelectData();
@@ -226,10 +244,14 @@ $(function(){
         </div>`);
 
       // find entries for this hour
-      const entries = state.diary.filter(d =>
-        d.datetime.startsWith(state.currentDate) &&
-        new Date(d.datetime).getHours() === h
-      );
+      const entries = state.diary.filter(d => {
+        if (!d.datetime.startsWith(state.currentDate)) return false;
+        // Extract hour from datetime string directly (format: YYYY-MM-DDTHH:MM)
+        const timePart = d.datetime.split('T')[1];
+        if (!timePart) return false;
+        const entryHour = parseInt(timePart.split(':')[0], 10);
+        return entryHour === h;
+      });
 
       entries.forEach((e) => {
         let text = '';
@@ -462,19 +484,19 @@ $(function(){
       const div = document.createElement('div');
       div.className = "mb-3";
       div.innerHTML = `
-        <h5>${item.allergen} — Score: ${item.score.toFixed(2)}</h5>
+        <h5>${escapeHtml(item.allergen)} — Score: ${item.score.toFixed(2)}</h5>
         <p>
-          <strong>Exposures:</strong> ${item.exposures}, 
-          <strong>Symptom Links:</strong> ${item.symptomLinks}, 
+          <strong>Exposures:</strong> ${item.exposures},
+          <strong>Symptom Links:</strong> ${item.symptomLinks},
           <strong>Weighted Severity:</strong> ${item.weightedLinks}<br/>
-          <strong>Avg Time to Symptom:</strong> ${item.avgTimeToSymptom}h (Window: ${item.windowHours}h)
+          <strong>Avg Time to Symptom:</strong> ${escapeHtml(String(item.avgTimeToSymptom))}h (Window: ${escapeHtml(String(item.windowHours))}h)
         </p>
         <ul class="list-group">
           ${item.symptoms.map(s => `
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              ${s.symptom}
+              ${escapeHtml(s.symptom)}
               <span>
-                Count: ${s.count}, Avg Severity: ${s.avgSeverity}, Max: ${s.maxSeverity}, Avg Time: ${s.avgTime}h
+                Count: ${s.count}, Avg Severity: ${s.avgSeverity}, Max: ${s.maxSeverity}, Avg Time: ${escapeHtml(String(s.avgTime))}h
               </span>
             </li>
           `).join("")}
@@ -525,8 +547,6 @@ $(function(){
     saveState();
     populateFoodSelect();
     renderFoodsList();
-    // refresh other controls
-    populateFoodSelect();
     renderDiary();
     alert('Saved');
   });
@@ -730,15 +750,17 @@ $(function(){
 
   // ---------- Date navigation ----------
   $('#prevDay').click(()=>{
-    const d = new Date(state.currentDate);
+    const d = new Date(state.currentDate + 'T00:00:00');
     d.setDate(d.getDate()-1);
     state.currentDate = d.toISOString().split('T')[0];
+    saveState();
     renderDiary();
   });
   $('#nextDay').click(()=>{
-    const d = new Date(state.currentDate);
+    const d = new Date(state.currentDate + 'T00:00:00');
     d.setDate(d.getDate()+1);
     state.currentDate = d.toISOString().split('T')[0];
+    saveState();
     renderDiary();
   });
 
@@ -775,8 +797,7 @@ $(function(){
         // on create it should add to state and return an option with the new id
         const newId = state.nextAllergenId++;
         const o = { value: String(newId), text: input };
-        // push allergen into state and save
-        state.allergens.push({id: newId, name: input});
+        state.allergens.push({id: newId, name: input, windowHours: 12});
         saveState();
         // add to other ts instances later via refreshAllergenTomSelectData
         refreshAllergenTomSelectData();
