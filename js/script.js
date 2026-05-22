@@ -229,17 +229,20 @@ $(function(){
   // ---------- Diary render ----------
   function renderDiary() {
     $('#currentDate').text(state.currentDate);
-    $('#diaryGrid').empty();
+    const grid = $('#diaryGrid');
+
+    grid.off('click');
+    grid.empty();
 
     for (let h = 0; h < 24; h++) {
       const hourStr = h.toString().padStart(2, '0') + ':00';
       const row = $(`
-        <div class="hour-slot row align-items-start">
+        <div class="hour-slot row align-items-start" data-hour="${h}">
           <div class="col-2 fw-bold">${hourStr}</div>
           <div class="col-7 entries"></div>
           <div class="col-3 text-end">
-            <button class="btn btn-sm btn-warning addFoodBtn">Add Food</button>
-            <button class="btn btn-sm btn-danger addSymptomBtn">Add Symptom</button>
+            <button class="btn btn-sm btn-warning addFoodBtn" data-time="${hourStr}">Add Food</button>
+            <button class="btn btn-sm btn-danger addSymptomBtn" data-time="${hourStr}">Add Symptom</button>
           </div>
         </div>`);
 
@@ -345,37 +348,39 @@ $(function(){
         row.find('.entries').append(div);
       });
 
-      // bind add buttons
-      row.find('.addFoodBtn').off('click').on('click', () => {
-        // Reset to Add mode
-        $('#foodModal .modal-title').text('Add Food (Diary)');
-        $('#foodTime').val(hourStr);
-        // ensure food options available
-        populateFoodSelect();
-        $('#foodSelect').val('').trigger('change');
-        $('#quickNewFood').addClass('d-none');
-        $('#quickFoodName').val('');
-        $('#foodQty').val('');
-        if (tsQuickFoodAllergens) tsQuickFoodAllergens.clear();
-        $('#foodModalSave').removeData('editIndex');
-        $('#foodModal').modal('show');
-      });
-
-      row.find('.addSymptomBtn').off('click').on('click', () => {
-        $('#symptomModal .modal-title').text('Add Symptom (Diary)');
-        $('#symptomTime').val(hourStr);
-        populateSymptomSelect();
-        $('#symptomSelect').val('').trigger('change');
-        $('#quickSymptomName').val('');
-        $('#symptomSeverity').val(5);
-        $('#symptomFrequency').val('once');
-        if (tsSymptomAllergens) tsSymptomAllergens.clear();
-        $('#symptomModalSave').removeData('editIndex');
-        $('#symptomModal').modal('show');
-      });
-
-      $('#diaryGrid').append(row);
+      grid.append(row);
     }
+
+    // Bind handlers once to the container instead of to each button
+    grid.on('click', '.addFoodBtn', function() {
+      const hourStr = $(this).data('time');
+      // Reset to Add mode
+      $('#foodModal .modal-title').text('Add Food (Diary)');
+      $('#foodTime').val(hourStr);
+      // ensure food options available
+      populateFoodSelect();
+      $('#foodSelect').val('').trigger('change');
+      $('#quickNewFood').addClass('d-none');
+      $('#quickFoodName').val('');
+      $('#foodQty').val('');
+      if (tsQuickFoodAllergens) tsQuickFoodAllergens.clear();
+      $('#foodModalSave').removeData('editIndex');
+      $('#foodModal').modal('show');
+    });
+
+    grid.on('click', '.addSymptomBtn', function() {
+      const hourStr = $(this).data('time');
+      $('#symptomModal .modal-title').text('Add Symptom (Diary)');
+      $('#symptomTime').val(hourStr);
+      populateSymptomSelect();
+      $('#symptomSelect').val('').trigger('change');
+      $('#quickSymptomName').val('');
+      $('#symptomSeverity').val(5);
+      $('#symptomFrequency').val('once');
+      if (tsSymptomAllergens) tsSymptomAllergens.clear();
+      $('#symptomModalSave').removeData('editIndex');
+      $('#symptomModal').modal('show');
+    });
   }
 
 
@@ -527,28 +532,34 @@ $(function(){
   }
 
   $('#saveManageFoodBtn').click(()=>{
-    const sel = $('#manageFoodSelect').val();
-    const name = $('#manageFoodName').val().trim();
-    if(!name) return alert('Food name required');
-    // get allergens ids from tsManageFoodAllergens
-    const selectedAllergenValues = tsManageFoodAllergens.getValue() || []; // array of strings (ids)
-    const allergenIds = (Array.isArray(selectedAllergenValues) ? selectedAllergenValues : (selectedAllergenValues?selectedAllergenValues.split(','):[])).map(v=>Number(v));
-    if(sel === 'new' || !sel){
-      const id = state.nextFoodId++;
-      state.foods.push({id, name, allergenIds});
+    try {
+      const sel = $('#manageFoodSelect').val();
+      const name = validateRequiredText($('#manageFoodName').val(), 'Food name');
+      // get allergens ids from tsManageFoodAllergens
+      const selectedAllergenValues = tsManageFoodAllergens.getValue() || []; // array of strings (ids)
+      const allergenIds = (Array.isArray(selectedAllergenValues) ? selectedAllergenValues : (selectedAllergenValues?selectedAllergenValues.split(','):[])).map(v=>Number(v));
+
+      if(sel === 'new' || !sel){
+        const id = state.nextFoodId++;
+        state.foods.push({id, name, allergenIds});
+      } else {
+        const id = Number(sel);
+        const f = state.foods.find(x=>x.id===id);
+        if(!f) {
+          alert('Selected food not found');
+          return;
+        }
+        f.name = name;
+        f.allergenIds = allergenIds;
+      }
+      saveState();
       populateFoodSelect();
-    } else {
-      const id = Number(sel);
-      const f = state.foods.find(x=>x.id===id);
-      if(!f) return alert('Selected food not found');
-      f.name = name;
-      f.allergenIds = allergenIds;
+      renderFoodsList();
+      renderDiary();
+      alert('Saved');
+    } catch(err) {
+      alert('Validation error: ' + err.message);
     }
-    saveState();
-    populateFoodSelect();
-    renderFoodsList();
-    renderDiary();
-    alert('Saved');
   });
 
   $('#deleteFoodBtn').click(()=>{
@@ -567,10 +578,13 @@ $(function(){
 
   // ---------- Manage Allergens logic ----------
   $('#addAllergenBtn').click(()=>{
-    const name = $('#newAllergenName').val().trim();
-    if(!name) return alert('Enter allergen name');
-    createAllergen(name);
-    $('#newAllergenName').val('');
+    try {
+      const name = validateRequiredText($('#newAllergenName').val(), 'Allergen name');
+      createAllergen(name);
+      $('#newAllergenName').val('');
+    } catch(err) {
+      alert('Validation error: ' + err.message);
+    }
   });
 
   // delete allergen buttons in list (delegated)
@@ -613,25 +627,32 @@ $(function(){
   }
 
   $('#saveManageSymptomBtn').click(()=>{
-    const sel = $('#manageSymptomSelect').val();
-    const name = $('#manageSymptomName').val().trim();
-    if(!name) return alert('Symptom name required');
-    const selected = tsManageSymptomAllergens.getValue() || [];
-    const allergenIds = (Array.isArray(selected) ? selected : (selected?selected.split(','):[])).map(v=>Number(v));
-    if(sel === 'new' || !sel){
-      const id = state.nextSymptomId++;
-      state.symptoms.push({id, name, allergenIds});
-    } else {
-      const id = Number(sel);
-      const s = state.symptoms.find(x=>x.id===id);
-      if(!s) return alert('Selected symptom not found');
-      s.name = name;
-      s.allergenIds = allergenIds;
+    try {
+      const sel = $('#manageSymptomSelect').val();
+      const name = validateRequiredText($('#manageSymptomName').val(), 'Symptom name');
+      const selected = tsManageSymptomAllergens.getValue() || [];
+      const allergenIds = (Array.isArray(selected) ? selected : (selected?selected.split(','):[])).map(v=>Number(v));
+
+      if(sel === 'new' || !sel){
+        const id = state.nextSymptomId++;
+        state.symptoms.push({id, name, allergenIds});
+      } else {
+        const id = Number(sel);
+        const s = state.symptoms.find(x=>x.id===id);
+        if(!s) {
+          alert('Selected symptom not found');
+          return;
+        }
+        s.name = name;
+        s.allergenIds = allergenIds;
+      }
+      saveState();
+      populateSymptomSelect();
+      renderSymptomsList();
+      alert('Saved');
+    } catch(err) {
+      alert('Validation error: ' + err.message);
     }
-    saveState();
-    populateSymptomSelect();
-    renderSymptomsList();
-    alert('Saved');
   });
 
   $('#deleteSymptomBtn').click(()=>{
@@ -662,90 +683,109 @@ $(function(){
   });
 
   $('#foodModalSave').off('click').on('click', function(){
-    const sel = $('#foodSelect').val();
-    let foodId;
+    try {
+      const sel = $('#foodSelect').val();
+      let foodId;
 
-    if (sel === 'new') {
-      const name = $('#quickFoodName').val().trim();
-      if (!name) { alert('Please enter a name for the new food'); return; }
-      // get allergen ids from TomSelect
-      const selectedAllergenValues = tsQuickFoodAllergens.getValue() || [];
-      const allergenIds = (Array.isArray(selectedAllergenValues) ? selectedAllergenValues : (selectedAllergenValues?selectedAllergenValues.split(','):[])).map(v=>Number(v));
-      const id = state.nextFoodId++;
-      state.foods.push({ id, name, allergenIds });
-      foodId = id;
-      populateFoodSelect();
-    } else {
-      foodId = Number(sel);
-    }
-
-    const qty = $('#foodQty').val().trim();
-    const time = $('#foodTime').val();
-    if (!time) { alert('Please set a time'); return; }
-    const datetime = `${state.currentDate}T${time}`;
-
-    const editIndex = $('#foodModalSave').data('editIndex');
-    if (typeof editIndex !== 'undefined') {
-      // update existing entry
-      const entry = state.diary[editIndex];
-      if (entry) {
-        entry.type = 'food';
-        entry.foodId = foodId;
-        entry.quantity = qty;
-        entry.datetime = datetime;
+      if (sel === 'new') {
+        const name = validateRequiredText($('#quickFoodName').val(), 'Food name');
+        // get allergen ids from TomSelect
+        const selectedAllergenValues = tsQuickFoodAllergens.getValue() || [];
+        const allergenIds = (Array.isArray(selectedAllergenValues) ? selectedAllergenValues : (selectedAllergenValues?selectedAllergenValues.split(','):[])).map(v=>Number(v));
+        const id = state.nextFoodId++;
+        state.foods.push({ id, name, allergenIds });
+        foodId = id;
+        populateFoodSelect();
+      } else {
+        foodId = Number(sel);
+        if (!foodId) {
+          alert('Please select a food');
+          return;
+        }
       }
-    } else {
-      // add new
-      state.diary.push({ datetime, type: 'food', foodId, quantity: qty });
-    }
 
-    saveState();
-    $('#foodModal').modal('hide');
-    renderDiary();
+      const qty = $('#foodQty').val().trim();
+      const time = $('#foodTime').val();
+      if (!time) {
+        alert('Please set a time');
+        return;
+      }
+      const datetime = `${state.currentDate}T${time}`;
+
+      const editIndex = $('#foodModalSave').data('editIndex');
+      if (typeof editIndex !== 'undefined') {
+        // update existing entry
+        const entry = state.diary[editIndex];
+        if (entry) {
+          entry.type = 'food';
+          entry.foodId = foodId;
+          entry.quantity = qty;
+          entry.datetime = datetime;
+        }
+      } else {
+        // add new
+        state.diary.push({ datetime, type: 'food', foodId, quantity: qty });
+      }
+
+      saveState();
+      $('#foodModal').modal('hide');
+      renderDiary();
+    } catch(err) {
+      alert('Validation error: ' + err.message);
+    }
   });
 
   // ---------- Add Symptom to Diary (symptomModal) ----------
   $('#symptomModalSave').off('click').on('click', function(){
-    const sel = $('#symptomSelect').val();
-    const quick = $('#quickSymptomName').val().trim();
-    let symptomId;
+    try {
+      const sel = $('#symptomSelect').val();
+      const quick = $('#quickSymptomName').val().trim();
+      let symptomId;
 
-    if (quick) {
-      // create new symptom (and link allergens if selected)
-      const selected = tsSymptomAllergens.getValue() || [];
-      const allergenIds = (Array.isArray(selected) ? selected : (selected?selected.split(','):[])).map(v=>Number(v));
-      symptomId = state.nextSymptomId++;
-      state.symptoms.push({ id: symptomId, name: quick, allergenIds });
-      populateSymptomSelect();
-    } else if (sel) {
-      symptomId = Number(sel);
-    } else {
-      alert('Please select or enter a symptom name'); return;
-    }
-
-    const severity = Number($('#symptomSeverity').val()) || 5;
-    const frequency = $('#symptomFrequency').val();
-    const time = $('#symptomTime').val();
-    if (!time) { alert('Please set a time'); return; }
-    const datetime = `${state.currentDate}T${time}`;
-
-    const editIndex = $('#symptomModalSave').data('editIndex');
-    if (typeof editIndex !== 'undefined') {
-      const entry = state.diary[editIndex];
-      if (entry) {
-        entry.type = 'symptom';
-        entry.symptomId = symptomId;
-        entry.severity = severity;
-        entry.frequency = frequency;
-        entry.datetime = datetime;
+      if (quick) {
+        const name = validateRequiredText(quick, 'Symptom name');
+        // create new symptom (and link allergens if selected)
+        const selected = tsSymptomAllergens.getValue() || [];
+        const allergenIds = (Array.isArray(selected) ? selected : (selected?selected.split(','):[])).map(v=>Number(v));
+        symptomId = state.nextSymptomId++;
+        state.symptoms.push({ id: symptomId, name, allergenIds });
+        populateSymptomSelect();
+      } else if (sel) {
+        symptomId = Number(sel);
+      } else {
+        alert('Please select or enter a symptom name');
+        return;
       }
-    } else {
-      state.diary.push({ datetime, type: 'symptom', symptomId, severity, frequency });
-    }
 
-    saveState();
-    $('#symptomModal').modal('hide');
-    renderDiary();
+      const severity = validateSeverity($('#symptomSeverity').val());
+      const frequency = $('#symptomFrequency').val();
+      const time = $('#symptomTime').val();
+      if (!time) {
+        alert('Please set a time');
+        return;
+      }
+      const datetime = `${state.currentDate}T${time}`;
+
+      const editIndex = $('#symptomModalSave').data('editIndex');
+      if (typeof editIndex !== 'undefined') {
+        const entry = state.diary[editIndex];
+        if (entry) {
+          entry.type = 'symptom';
+          entry.symptomId = symptomId;
+          entry.severity = severity;
+          entry.frequency = frequency;
+          entry.datetime = datetime;
+        }
+      } else {
+        state.diary.push({ datetime, type: 'symptom', symptomId, severity, frequency });
+      }
+
+      saveState();
+      $('#symptomModal').modal('hide');
+      renderDiary();
+    } catch(err) {
+      alert('Validation error: ' + err.message);
+    }
   });
 
   // ---------- Date navigation ----------
@@ -789,6 +829,29 @@ $(function(){
   // ---------- Utility: escape html ----------
   function escapeHtml(str){ return String(str || '').replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
 
+  function validateSeverity(value) {
+    const num = Number(value);
+    if (isNaN(num)) return 5; // default
+    return Math.max(1, Math.min(10, Math.floor(num))); // clamp between 1-10
+  }
+
+  function validateWindowHours(value) {
+    const num = Number(value);
+    if (isNaN(num) || num < 1) return 12; // default
+    return Math.max(1, Math.min(168, Math.floor(num))); // max 1 week
+  }
+
+  function validateRequiredText(value, fieldName) {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) {
+      throw new Error(`${fieldName} is required and cannot be empty`);
+    }
+    if (trimmed.length > 200) {
+      throw new Error(`${fieldName} must be less than 200 characters`);
+    }
+    return trimmed;
+  }
+
   // ---------- Initialize TomSelect instances with create handler that creates allergen in state and returns new id ----------
   function initTomSelects(){
     const makeOpts = {
@@ -819,6 +882,73 @@ $(function(){
     // First load options from state
     refreshAllergenTomSelectData();
   }
+
+  function exportData() {
+    try {
+      const dataStr = JSON.stringify(state, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      const timestamp = new Date().toISOString().split('T')[0];
+      link.download = `gutlogix-backup-${timestamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      alert('Data exported successfully!');
+    } catch(err) {
+      console.error('Export error:', err);
+      alert('Failed to export data: ' + err.message);
+    }
+  }
+
+  function importData(fileInput) {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const imported = JSON.parse(e.target.result);
+
+        // Validate imported data structure
+        if (!imported.allergens || !imported.foods || !imported.symptoms || !imported.diary) {
+          throw new Error('Invalid data format: missing required fields');
+        }
+
+        if (confirm('This will replace all current data. Are you sure? Make sure you have a backup!')) {
+          state = imported;
+          saveState();
+
+          // Re-initialize UI
+          initTomSelects();
+          populateFoodSelect();
+          populateSymptomSelect();
+          renderAllergensList();
+          renderFoodsList();
+          renderSymptomsList();
+          renderDiary();
+
+          alert('Data imported successfully!');
+          fileInput.value = ''; // Clear file input
+        }
+      } catch(err) {
+        console.error('Import error:', err);
+        alert('Failed to import data: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // Wire up export/import buttons
+  $('#exportDataBtn').click(exportData);
+  $('#importDataBtn').click(function() {
+    $('#importFileInput').click();
+  });
+  $('#importFileInput').on('change', function() {
+    importData(this);
+  });
 
   // ---------- Keyboard / quick utilities ----------
   $(document).on('keydown', function(e){
