@@ -6,6 +6,20 @@
 */
 
 $(function(){
+  const CONSTANTS = {
+    HOURS_PER_DAY: 24,
+    DEFAULT_SEVERITY: 5,
+    MIN_SEVERITY: 1,
+    MAX_SEVERITY: 10,
+    DEFAULT_WINDOW_HOURS: 12,
+    MIN_WINDOW_HOURS: 1,
+    MAX_WINDOW_HOURS: 168, // 1 week
+    MAX_TEXT_LENGTH: 200,
+    SAVE_DEBOUNCE_MS: 500,
+    TOAST_DURATION_MS: 3000,
+    TOAST_SUCCESS_DURATION_MS: 2000
+  };
+
   // ---------- Initial state ----------
   let state = {
     allergens: [],      // {id, name}
@@ -29,7 +43,9 @@ $(function(){
       }
     } catch(e) {
       console.error('Failed to load state from localStorage:', e);
-      alert('Failed to load saved data. Starting with default data. Error: ' + e.message);
+      setTimeout(() => {
+        showToast('Failed to load saved data. Starting with default data.', 'warning', 5000);
+      }, 500);
       initializeDefaultState();
     }
   }
@@ -107,21 +123,79 @@ $(function(){
     saveState();
   }
 
-  function saveState(){
+  let saveStateTimeout = null;
+
+  function saveState(immediate = false){
+    if (immediate) {
+      // Clear any pending debounced save
+      if (saveStateTimeout) {
+        clearTimeout(saveStateTimeout);
+        saveStateTimeout = null;
+      }
+      saveStateImmediate();
+    } else {
+      // Debounce the save
+      if (saveStateTimeout) {
+        clearTimeout(saveStateTimeout);
+      }
+      saveStateTimeout = setTimeout(() => {
+        saveStateImmediate();
+        saveStateTimeout = null;
+      }, CONSTANTS.SAVE_DEBOUNCE_MS);
+    }
+  }
+
+  function saveStateImmediate() {
     try {
       localStorage.setItem('ibsTracker_v2', JSON.stringify(state));
     } catch(e) {
       console.error('Failed to save state to localStorage:', e);
-      alert('Failed to save data. Your changes may not persist. Error: ' + e.message);
+      showToast('Failed to save data. Your changes may not persist. Error: ' + e.message, 'danger');
     }
   }
 
   // ---------- TomSelect instances (will initialize later) ----------
   let tsQuickFoodAllergens, tsManageFoodAllergens, tsSymptomAllergens, tsManageSymptomAllergens;
 
+  function showToast(message, type = 'info', duration = null) {
+    // Bootstrap toast types: primary, secondary, success, danger, warning, info
+    const toastDuration = duration || (type === 'success' ? CONSTANTS.TOAST_SUCCESS_DURATION_MS : CONSTANTS.TOAST_DURATION_MS);
+
+    const toastId = 'toast-' + Date.now();
+    const bgClass = type === 'danger' ? 'bg-danger' :
+                    type === 'success' ? 'bg-success' :
+                    type === 'warning' ? 'bg-warning' :
+                    type === 'info' ? 'bg-info' : 'bg-primary';
+
+    const toast = $(`
+      <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body">
+            ${escapeHtml(message)}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    `);
+
+    $('#toastContainer').append(toast);
+
+    const bsToast = new bootstrap.Toast(toast[0], {
+      autohide: true,
+      delay: toastDuration
+    });
+
+    bsToast.show();
+
+    // Remove from DOM after hidden
+    toast[0].addEventListener('hidden.bs.toast', () => {
+      toast.remove();
+    });
+  }
+
   // ---------- Helpers ----------
   function findAllergenByName(name){ return state.allergens.find(a=>a.name.toLowerCase()===name.toLowerCase()); }
-  function createAllergen(name, windowHours = 12){
+  function createAllergen(name, windowHours = CONSTANTS.DEFAULT_WINDOW_HOURS){
     const existing = findAllergenByName(name);
     if(existing) return existing.id;
     const id = state.nextAllergenId++;
@@ -227,14 +301,26 @@ $(function(){
   }
 
   // ---------- Diary render ----------
-  function renderDiary() {
+  let lastRenderedDiary = null;
+  let lastRenderedDate = null;
+
+  function renderDiary(forceRender = false) {
+    const currentDiaryString = JSON.stringify(state.diary);
+
+    if (!forceRender && lastRenderedDiary === currentDiaryString && lastRenderedDate === state.currentDate) {
+      return; // No changes, skip render
+    }
+
+    lastRenderedDiary = currentDiaryString;
+    lastRenderedDate = state.currentDate;
+
     $('#currentDate').text(state.currentDate);
     const grid = $('#diaryGrid');
 
     grid.off('click');
     grid.empty();
 
-    for (let h = 0; h < 24; h++) {
+    for (let h = 0; h < CONSTANTS.HOURS_PER_DAY; h++) {
       const hourStr = h.toString().padStart(2, '0') + ':00';
       const row = $(`
         <div class="hour-slot row align-items-start" data-hour="${h}">
@@ -546,7 +632,7 @@ $(function(){
         const id = Number(sel);
         const f = state.foods.find(x=>x.id===id);
         if(!f) {
-          alert('Selected food not found');
+          showToast('Selected food not found', 'danger');
           return;
         }
         f.name = name;
@@ -555,10 +641,10 @@ $(function(){
       saveState();
       populateFoodSelect();
       renderFoodsList();
-      renderDiary();
-      alert('Saved');
+      renderDiary(true);
+      showToast('Food saved successfully', 'success');
     } catch(err) {
-      alert('Validation error: ' + err.message);
+      showToast('Validation error: ' + err.message, 'danger');
     }
   });
 
@@ -582,8 +668,9 @@ $(function(){
       const name = validateRequiredText($('#newAllergenName').val(), 'Allergen name');
       createAllergen(name);
       $('#newAllergenName').val('');
+      showToast('Allergen added successfully', 'success');
     } catch(err) {
-      alert('Validation error: ' + err.message);
+      showToast('Validation error: ' + err.message, 'danger');
     }
   });
 
@@ -640,7 +727,7 @@ $(function(){
         const id = Number(sel);
         const s = state.symptoms.find(x=>x.id===id);
         if(!s) {
-          alert('Selected symptom not found');
+          showToast('Selected symptom not found', 'danger');
           return;
         }
         s.name = name;
@@ -649,9 +736,9 @@ $(function(){
       saveState();
       populateSymptomSelect();
       renderSymptomsList();
-      alert('Saved');
+      showToast('Symptom saved successfully', 'success');
     } catch(err) {
-      alert('Validation error: ' + err.message);
+      showToast('Validation error: ' + err.message, 'danger');
     }
   });
 
@@ -699,7 +786,7 @@ $(function(){
       } else {
         foodId = Number(sel);
         if (!foodId) {
-          alert('Please select a food');
+          showToast('Please select a food', 'warning');
           return;
         }
       }
@@ -707,7 +794,7 @@ $(function(){
       const qty = $('#foodQty').val().trim();
       const time = $('#foodTime').val();
       if (!time) {
-        alert('Please set a time');
+        showToast('Please set a time', 'warning');
         return;
       }
       const datetime = `${state.currentDate}T${time}`;
@@ -729,9 +816,10 @@ $(function(){
 
       saveState();
       $('#foodModal').modal('hide');
-      renderDiary();
+      renderDiary(true);
+      showToast('Food entry saved', 'success');
     } catch(err) {
-      alert('Validation error: ' + err.message);
+      showToast('Validation error: ' + err.message, 'danger');
     }
   });
 
@@ -753,7 +841,7 @@ $(function(){
       } else if (sel) {
         symptomId = Number(sel);
       } else {
-        alert('Please select or enter a symptom name');
+        showToast('Please select or enter a symptom name', 'warning');
         return;
       }
 
@@ -761,7 +849,7 @@ $(function(){
       const frequency = $('#symptomFrequency').val();
       const time = $('#symptomTime').val();
       if (!time) {
-        alert('Please set a time');
+        showToast('Please set a time', 'warning');
         return;
       }
       const datetime = `${state.currentDate}T${time}`;
@@ -782,9 +870,10 @@ $(function(){
 
       saveState();
       $('#symptomModal').modal('hide');
-      renderDiary();
+      renderDiary(true);
+      showToast('Symptom entry saved', 'success');
     } catch(err) {
-      alert('Validation error: ' + err.message);
+      showToast('Validation error: ' + err.message, 'danger');
     }
   });
 
@@ -793,15 +882,15 @@ $(function(){
     const d = new Date(state.currentDate + 'T00:00:00');
     d.setDate(d.getDate()-1);
     state.currentDate = d.toISOString().split('T')[0];
-    saveState();
-    renderDiary();
+    saveState(true);
+    renderDiary(true);
   });
   $('#nextDay').click(()=>{
     const d = new Date(state.currentDate + 'T00:00:00');
     d.setDate(d.getDate()+1);
     state.currentDate = d.toISOString().split('T')[0];
-    saveState();
-    renderDiary();
+    saveState(true);
+    renderDiary(true);
   });
 
   $('#manageFoodsModal').on('show.bs.modal', function(){
@@ -831,14 +920,14 @@ $(function(){
 
   function validateSeverity(value) {
     const num = Number(value);
-    if (isNaN(num)) return 5; // default
-    return Math.max(1, Math.min(10, Math.floor(num))); // clamp between 1-10
+    if (isNaN(num)) return CONSTANTS.DEFAULT_SEVERITY;
+    return Math.max(CONSTANTS.MIN_SEVERITY, Math.min(CONSTANTS.MAX_SEVERITY, Math.floor(num)));
   }
 
   function validateWindowHours(value) {
     const num = Number(value);
-    if (isNaN(num) || num < 1) return 12; // default
-    return Math.max(1, Math.min(168, Math.floor(num))); // max 1 week
+    if (isNaN(num) || num < CONSTANTS.MIN_WINDOW_HOURS) return CONSTANTS.DEFAULT_WINDOW_HOURS;
+    return Math.max(CONSTANTS.MIN_WINDOW_HOURS, Math.min(CONSTANTS.MAX_WINDOW_HOURS, Math.floor(num)));
   }
 
   function validateRequiredText(value, fieldName) {
@@ -846,8 +935,8 @@ $(function(){
     if (!trimmed) {
       throw new Error(`${fieldName} is required and cannot be empty`);
     }
-    if (trimmed.length > 200) {
-      throw new Error(`${fieldName} must be less than 200 characters`);
+    if (trimmed.length > CONSTANTS.MAX_TEXT_LENGTH) {
+      throw new Error(`${fieldName} must be less than ${CONSTANTS.MAX_TEXT_LENGTH} characters`);
     }
     return trimmed;
   }
@@ -860,7 +949,7 @@ $(function(){
         // on create it should add to state and return an option with the new id
         const newId = state.nextAllergenId++;
         const o = { value: String(newId), text: input };
-        state.allergens.push({id: newId, name: input, windowHours: 12});
+        state.allergens.push({id: newId, name: input, windowHours: CONSTANTS.DEFAULT_WINDOW_HOURS});
         saveState();
         // add to other ts instances later via refreshAllergenTomSelectData
         refreshAllergenTomSelectData();
@@ -896,10 +985,10 @@ $(function(){
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      alert('Data exported successfully!');
+      showToast('Data exported successfully!', 'success');
     } catch(err) {
       console.error('Export error:', err);
-      alert('Failed to export data: ' + err.message);
+      showToast('Failed to export data: ' + err.message, 'danger');
     }
   }
 
@@ -919,7 +1008,7 @@ $(function(){
 
         if (confirm('This will replace all current data. Are you sure? Make sure you have a backup!')) {
           state = imported;
-          saveState();
+          saveState(true); // Immediate save
 
           // Re-initialize UI
           initTomSelects();
@@ -928,14 +1017,14 @@ $(function(){
           renderAllergensList();
           renderFoodsList();
           renderSymptomsList();
-          renderDiary();
+          renderDiary(true);
 
-          alert('Data imported successfully!');
+          showToast('Data imported successfully!', 'success');
           fileInput.value = ''; // Clear file input
         }
       } catch(err) {
         console.error('Import error:', err);
-        alert('Failed to import data: ' + err.message);
+        showToast('Failed to import data: ' + err.message, 'danger');
       }
     };
     reader.readAsText(file);
@@ -950,10 +1039,23 @@ $(function(){
     importData(this);
   });
 
-  // ---------- Keyboard / quick utilities ----------
   $(document).on('keydown', function(e){
     if(e.key === 'Escape'){
-      // close any bootstrap modal
+      // Close any open Bootstrap modal
+      const openModal = $('.modal.show');
+      if (openModal.length > 0) {
+        const modalInstance = bootstrap.Modal.getInstance(openModal[0]);
+        if (modalInstance) {
+          modalInstance.hide();
+        }
+      }
+    }
+  });
+
+  $(window).on('beforeunload', function() {
+    if (saveStateTimeout) {
+      // Force immediate save if there's a pending debounced save
+      saveStateImmediate();
     }
   });
 
