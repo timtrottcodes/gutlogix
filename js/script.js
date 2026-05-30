@@ -17,8 +17,54 @@ $(function(){
     MAX_TEXT_LENGTH: 200,
     SAVE_DEBOUNCE_MS: 500,
     TOAST_DURATION_MS: 3000,
-    TOAST_SUCCESS_DURATION_MS: 2000
+    TOAST_SUCCESS_DURATION_MS: 2000,
+    THEME_STORAGE_KEY: 'gutlogix_theme_preference'
   };
+
+  function initTheme() {
+    // Get saved preference or default to 'system'
+    const savedTheme = localStorage.getItem(CONSTANTS.THEME_STORAGE_KEY) || 'system';
+    applyTheme(savedTheme);
+    updateThemeButtons(savedTheme);
+  }
+
+  function applyTheme(theme) {
+    if (theme === 'system') {
+      // Use system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    } else {
+      // Use explicit theme
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+
+    // Save preference
+    localStorage.setItem(CONSTANTS.THEME_STORAGE_KEY, theme);
+  }
+
+  function updateThemeButtons(activeTheme) {
+    $('.theme-toggle-btn').removeClass('active');
+    $(`.theme-toggle-btn[data-theme="${activeTheme}"]`).addClass('active');
+  }
+
+  // Theme toggle button handlers
+  $('.theme-toggle-btn').on('click', function() {
+    const theme = $(this).data('theme');
+    applyTheme(theme);
+    updateThemeButtons(theme);
+    showToast(`Theme changed to ${theme === 'system' ? 'system preference' : theme + ' mode'}`, 'info', CONSTANTS.TOAST_SUCCESS_DURATION_MS);
+  });
+
+  // Listen for system theme changes when in 'system' mode
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    const currentPreference = localStorage.getItem(CONSTANTS.THEME_STORAGE_KEY);
+    if (currentPreference === 'system') {
+      document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+    }
+  });
+
+  // Initialize theme on page load
+  initTheme();
 
   // ---------- Initial state ----------
   let state = {
@@ -323,12 +369,16 @@ $(function(){
     for (let h = 0; h < CONSTANTS.HOURS_PER_DAY; h++) {
       const hourStr = h.toString().padStart(2, '0') + ':00';
       const row = $(`
-        <div class="hour-slot row align-items-start" data-hour="${h}">
-          <div class="col-2 fw-bold">${hourStr}</div>
-          <div class="col-7 entries"></div>
-          <div class="col-3 text-end">
-            <button class="btn btn-sm btn-warning addFoodBtn" data-time="${hourStr}">Add Food</button>
-            <button class="btn btn-sm btn-danger addSymptomBtn" data-time="${hourStr}">Add Symptom</button>
+        <div class="hour-slot d-flex align-items-start gap-3" data-hour="${h}">
+          <div class="hour-label">${hourStr}</div>
+          <div class="entries-container flex-grow-1"></div>
+          <div class="hour-actions">
+            <button class="btn btn-sm btn-warning btn-icon addFoodBtn" data-time="${hourStr}" title="Add food entry">
+              <span>🍽️</span>
+            </button>
+            <button class="btn btn-sm btn-danger btn-icon addSymptomBtn" data-time="${hourStr}" title="Add symptom">
+              <span>💊</span>
+            </button>
           </div>
         </div>`);
 
@@ -342,20 +392,37 @@ $(function(){
         return entryHour === h;
       });
 
+      const entriesContainer = row.find('.entries-container');
+
+      if (entries.length === 0) {
+        entriesContainer.append(`
+          <div class="text-muted small" style="font-style: italic; opacity: 0.5;">
+            No entries
+          </div>
+        `);
+      }
+
       entries.forEach((e) => {
         let text = '';
+        let icon = '';
         if (e.type === 'food') {
           const f = state.foods.find(ff => ff.id === e.foodId);
           text = f ? `${f.name}${e.quantity ? (' • ' + e.quantity) : ''}` : `Unknown food • ${e.quantity || ''}`;
+          icon = '🍽️';
         } else if (e.type === 'symptom') {
           const s = state.symptoms.find(ss => ss.id === e.symptomId);
           text = s ? `${s.name} • severity ${e.severity}` : `Unknown symptom • severity ${e.severity}`;
+          icon = '💊';
         }
 
         const div = $(`
-          <div class="entry ${e.type === 'food' ? 'food-entry' : 'symptom-entry'} d-flex justify-content-between align-items-center" style="cursor:pointer;">
-            <span>${escapeHtml(text)}</span>
-            <button class="btn btn-sm btn-outline-danger btn-delete" style="display:none;padding: 2px;line-height: 1em;">&times;</button>
+          <div class="entry ${e.type === 'food' ? 'food-entry' : 'symptom-entry'}" style="cursor:pointer;">
+            <div class="entry-content">
+              <span class="entry-text">
+                <span style="margin-right: 6px;">${icon}</span>${escapeHtml(text)}
+              </span>
+              <button class="btn btn-sm btn-outline-danger btn-delete" title="Delete entry">×</button>
+            </div>
           </div>
         `);
 
@@ -412,11 +479,6 @@ $(function(){
           }
         });
 
-        // hover to show delete button
-        div.hover(
-          () => div.find('.btn-delete').show(),
-          () => div.find('.btn-delete').hide()
-        );
 
         // delete handler
         div.find('.btn-delete').on('click', (ev) => {
@@ -426,12 +488,13 @@ $(function(){
             if (idxInDiary > -1) {
               state.diary.splice(idxInDiary, 1);
               saveState();
-              renderDiary();
+              renderDiary(true); // force render
+              showToast('Entry deleted', 'info', CONSTANTS.TOAST_SUCCESS_DURATION_MS);
             }
           }
         });
 
-        row.find('.entries').append(div);
+        entriesContainer.append(div);
       });
 
       grid.append(row);

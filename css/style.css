@@ -1,26 +1,938 @@
+/* ========================================
+   🎨 GutLogix - Modern UI Styles
+   ======================================== */
+
+:root {
+  /* Brand Colors (consistent across themes) */
+  --primary-color: #0d6efd;
+  --primary-dark: #0a58ca;
+  --primary-light: #3d8bfd;
+  --success-color: #198754;
+  --danger-color: #dc3545;
+  --warning-color: #ffc107;
+  --info-color: #0dcaf0;
+
+  /* Spacing (consistent across themes) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Border Radius (consistent across themes) */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+/* ========================================
+   🌞 Light Theme (Default)
+   ======================================== */
+
+:root,
+[data-theme="light"] {
+  /* Semantic Colors */
+  --food-bg: #fff3cd;
+  --food-bg-hover: #ffe69c;
+  --food-border: #ffc107;
+  --symptom-bg: #f8d7da;
+  --symptom-bg-hover: #f1aeb5;
+  --symptom-border: #dc3545;
+
+  /* Neutrals */
+  --bg-body: #f8f9fa;
+  --bg-light: #f8f9fa;
+  --bg-white: #ffffff;
+  --border-color: #dee2e6;
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-muted: #6c757d;
+  --text-dark: #212529;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+
+  /* Hour slot hover */
+  --hour-slot-hover: rgba(13, 110, 253, 0.02);
+
+  /* Modal overlay */
+  --modal-backdrop: rgba(0, 0, 0, 0.5);
+}
+
+/* ========================================
+   🌙 Dark Theme
+   ======================================== */
+
+[data-theme="dark"] {
+  /* Semantic Colors - Adjusted for dark mode */
+  --food-bg: #5a4a1f;
+  --food-bg-hover: #6b5a2f;
+  --food-border: #ffc107;
+  --symptom-bg: #4a1f1f;
+  --symptom-bg-hover: #5a2f2f;
+  --symptom-border: #dc3545;
+
+  /* Neutrals - Dark variants */
+  --bg-body: #0d1117;
+  --bg-light: #161b22;
+  --bg-white: #1c2128;
+  --border-color: #30363d;
+  --text-primary: #e6edf3;
+  --text-secondary: #c9d1d9;
+  --text-muted: #8b949e;
+  --text-dark: #e6edf3;
+
+  /* Shadows - Lighter for dark mode */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.5);
+
+  /* Hour slot hover */
+  --hour-slot-hover: rgba(13, 110, 253, 0.1);
+
+  /* Modal overlay */
+  --modal-backdrop: rgba(0, 0, 0, 0.8);
+}
+
+/* ========================================
+   General Styles
+   ======================================== */
+
 body {
-  background: #f8f9fa;
+  background: var(--bg-body);
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+/* Light theme gradient background */
+[data-theme="light"] body {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* Dark theme gradient background */
+[data-theme="dark"] body {
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+}
+
+.container {
+  max-width: 1200px;
+}
+
+/* ========================================
+   Header & Navigation
+   ======================================== */
+
+.app-header {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.app-title {
+  color: var(--primary-color);
+  font-weight: 700;
+  font-size: 1.75rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-title::before {
+  content: "🩺";
+  font-size: 2rem;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background: var(--bg-light);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  box-shadow: var(--shadow-sm);
+}
+
+.theme-toggle-btn {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--bg-white);
+  color: var(--text-primary);
+}
+
+.theme-toggle-btn.active {
+  background: var(--primary-color);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.theme-toggle-btn .icon {
+  font-size: 1rem;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.btn {
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  padding: 8px 16px;
+  transition: all 0.2s ease;
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ========================================
+   Date Navigation
+   ======================================== */
+
+.date-navigation {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.current-date {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 150px;
+  text-align: center;
+}
+
+.date-nav-btn {
+  min-width: 120px;
+}
+
+/* ========================================
+   Diary Grid
+   ======================================== */
+
+#diaryGrid {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
 .hour-slot {
-  border-bottom: 1px solid #dee2e6;
-  padding: 8px;
+  border-bottom: 1px solid var(--border-color);
+  padding: var(--spacing-md);
+  transition: background-color 0.2s ease, border-color 0.3s ease;
+  min-height: 60px;
 }
+
+.hour-slot:hover {
+  background-color: var(--hour-slot-hover);
+}
+
+.hour-slot:last-child {
+  border-bottom: none;
+}
+
+.hour-label {
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 0.95rem;
+  min-width: 70px;
+}
+
+.entries-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1;
+}
+
+.hour-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ========================================
+   Diary Entries
+   ======================================== */
+
 .entry {
-  padding: 4px 8px;
-  margin: 4px 0;
-  border-radius: 6px;
+  padding: var(--spacing-sm) 12px;
+  margin: var(--spacing-xs) 0;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  position: relative;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  box-shadow: var(--shadow-sm);
+}
+
+.entry:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
+}
+
+.food-entry {
+  background-color: var(--food-bg);
+  border-left-color: var(--food-border);
+}
+
+.food-entry:hover {
+  background-color: var(--food-bg-hover);
+}
+
+.symptom-entry {
+  background-color: var(--symptom-bg);
+  border-left-color: var(--symptom-border);
+}
+
+.symptom-entry:hover {
+  background-color: var(--symptom-bg-hover);
+}
+
+.entry-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.entry-text {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.btn-delete {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  padding: 2px 8px;
+  font-size: 1.2rem;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+}
+
+.entry:hover .btn-delete {
+  opacity: 1;
+}
+
+/* ========================================
+   Empty States
+   ======================================== */
+
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  color: var(--text-muted);
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
+}
+
+.empty-state-text {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* ========================================
+   Modal Improvements
+   ======================================== */
+
+.modal-content {
+  border-radius: var(--radius-xl);
+  border: none;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  color: white;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: var(--spacing-lg);
+}
+
+.modal-title {
+  font-weight: 600;
+}
+
+.modal-body {
+  padding: var(--spacing-lg);
+}
+
+.modal-footer {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--bg-light);
+  border-top: 1px solid var(--border-color);
+}
+
+/* ========================================
+   Form Elements
+   ======================================== */
+
+.form-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
   font-size: 0.9rem;
 }
-.food-entry {
-  background-color: #fff3cd;
+
+.form-control, .form-select {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  padding: 10px 12px;
+  transition: all 0.2s ease;
+  background-color: var(--bg-white);
+  color: var(--text-primary);
 }
-.symptom-entry {
-  background-color: #f8d7da;
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+  background-color: var(--bg-white);
 }
+
+.form-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: var(--spacing-xs);
+}
+
+/* ========================================
+   List Groups
+   ======================================== */
+
+.list-group-item {
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-xs);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+}
+
+.list-group-item:hover {
+  background-color: var(--bg-light);
+  transform: translateX(4px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ========================================
+   Badges & Pills
+   ======================================== */
+
+.badge {
+  border-radius: var(--radius-md);
+  padding: 4px 10px;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+/* ========================================
+   Footer
+   ======================================== */
+
+footer {
+  background: var(--bg-white);
+  border-top: 2px solid var(--border-color);
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-md);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+footer a {
+  color: var(--primary-light);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+footer a:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+footer .text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+
 .small-muted {
   font-size: 0.85rem;
-  color: #6c757d;
+  color: var(--text-muted);
 }
+
 .tom-select-custom .ts-control {
   min-height: calc(1.5em + 1rem);
+  border-radius: var(--radius-md) !important;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: var(--spacing-md);
+  }
+
+  .app-title {
+    font-size: 1.25rem;
+  }
+
+  .nav-buttons {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .nav-buttons .btn {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.85rem;
+    padding: 6px 10px;
+  }
+
+  .date-navigation {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .date-nav-btn {
+    width: 100%;
+  }
+
+  .current-date {
+    order: -1;
+  }
+
+  .hour-slot {
+    padding: var(--spacing-sm);
+  }
+
+  .hour-actions {
+    width: 100%;
+  }
+
+  .hour-actions .btn {
+    flex: 1;
+    font-size: 0.8rem;
+  }
+
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+}
+
+/* ========================================
+   Dark Mode - Additional Overrides
+   ======================================== */
+
+/* ========================================
+   Modal Components - Dark Mode
+   ======================================== */
+
+/* Modal backdrop */
+[data-theme="dark"] .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Modal content */
+[data-theme="dark"] .modal-content {
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+/* Modal body */
+[data-theme="dark"] .modal-body {
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+}
+
+/* Modal footer */
+[data-theme="dark"] .modal-footer {
+  background-color: var(--bg-light);
+  border-top-color: var(--border-color);
+}
+
+/* Modal headings and text */
+[data-theme="dark"] .modal-body h6,
+[data-theme="dark"] .modal-body h5,
+[data-theme="dark"] .modal-body h4,
+[data-theme="dark"] .modal-body h3,
+[data-theme="dark"] .modal-body h2,
+[data-theme="dark"] .modal-body h1 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-body p {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-body strong {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-body span {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-body ul {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-body li {
+  color: var(--text-primary);
+}
+
+/* Horizontal rules in modals */
+[data-theme="dark"] .modal-body hr {
+  border-color: var(--border-color);
+  opacity: 0.5;
+}
+
+/* Border elements in modals */
+[data-theme="dark"] .modal-body .border {
+  border-color: var(--border-color) !important;
+  background-color: var(--bg-light);
+}
+
+[data-theme="dark"] .modal-body .rounded {
+  background-color: var(--bg-light);
+}
+
+/* Input groups in modals */
+[data-theme="dark"] .modal-body .input-group {
+  background-color: transparent;
+}
+
+[data-theme="dark"] .modal-body .input-group .form-control {
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .modal-body .input-group .form-control::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+[data-theme="dark"] .modal-body .input-group .btn {
+  background-color: var(--bg-light);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .modal-body .input-group .btn:hover {
+  background-color: var(--bg-white);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+/* Close button in modal header */
+[data-theme="dark"] .modal-header .btn-close {
+  filter: invert(1) brightness(2);
+}
+
+/* ========================================
+   Form Elements - Dark Mode
+   ======================================== */
+
+/* Form inputs placeholder text */
+[data-theme="dark"] .form-control::placeholder,
+[data-theme="dark"] .form-select::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* Input focus states - ensure proper contrast */
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Select dropdown options */
+[data-theme="dark"] .form-select option {
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+}
+
+/* Disabled form elements */
+[data-theme="dark"] .form-control:disabled,
+[data-theme="dark"] .form-select:disabled {
+  background-color: var(--bg-light);
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* Number inputs */
+[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button,
+[data-theme="dark"] input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.6;
+}
+
+/* Time inputs */
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.7;
+}
+
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* ========================================
+   Bootstrap Components - Dark Mode
+   ======================================== */
+
+/* Button groups */
+[data-theme="dark"] .btn-group {
+  background-color: transparent;
+}
+
+[data-theme="dark"] .btn-group .btn {
+  border-color: var(--border-color);
+}
+
+/* Bootstrap buttons in dark mode */
+[data-theme="dark"] .btn-outline-secondary {
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .btn-outline-secondary:hover {
+  background-color: var(--bg-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-outline-primary {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .btn-outline-primary:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+[data-theme="dark"] .btn-outline-warning {
+  color: var(--warning-color);
+  border-color: var(--warning-color);
+}
+
+[data-theme="dark"] .btn-outline-warning:hover {
+  background-color: var(--warning-color);
+  color: #212529;
+}
+
+[data-theme="dark"] .btn-outline-danger {
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+[data-theme="dark"] .btn-outline-danger:hover {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+[data-theme="dark"] .btn-close {
+  filter: invert(1);
+}
+
+[data-theme="dark"] .btn-secondary {
+  background-color: var(--bg-light);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-success:hover {
+  opacity: 0.9;
+}
+
+[data-theme="dark"] .btn-danger:hover {
+  opacity: 0.9;
+}
+
+/* Badges */
+[data-theme="dark"] .badge {
+  color: white;
+}
+
+[data-theme="dark"] .badge.bg-secondary {
+  background-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Bootstrap toasts */
+[data-theme="dark"] .toast {
+  background-color: var(--bg-white);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .toast-header {
+  background-color: var(--bg-light);
+  border-bottom-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .toast-body {
+  color: var(--text-primary);
+}
+
+/* ========================================
+   Tom Select - Dark Mode
+   ======================================== */
+
+/* Tom Select in dark mode */
+[data-theme="dark"] .ts-wrapper .ts-control,
+[data-theme="dark"] .ts-wrapper .ts-dropdown {
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .ts-wrapper .ts-dropdown .option {
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .ts-wrapper .ts-dropdown .option:hover,
+[data-theme="dark"] .ts-wrapper .ts-dropdown .active {
+  background-color: var(--bg-light);
+}
+
+[data-theme="dark"] .ts-wrapper .item {
+  background-color: var(--bg-light);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .ts-wrapper.single .ts-control::after {
+  border-color: var(--text-primary) transparent transparent transparent;
+}
+
+[data-theme="dark"] .ts-wrapper .ts-dropdown [data-selectable].option {
+  cursor: pointer;
+}
+
+[data-theme="dark"] .ts-wrapper .ts-dropdown .create {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .ts-wrapper .ts-dropdown .create:hover {
+  color: var(--text-primary);
+}
+
+/* Smooth theme transitions */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
+}
+
+/* Don't transition transforms and opacity */
+*:hover {
+  transition-property: background-color, border-color, color, transform, box-shadow, opacity;
+}
+
+/* ========================================
+   Print Styles
+   ======================================== */
+
+@media print {
+  body {
+    background: white !important;
+  }
+
+  /* Force light theme for printing */
+  [data-theme="dark"] body,
+  [data-theme="dark"] * {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  .app-header,
+  .date-navigation,
+  .nav-buttons,
+  .hour-actions,
+  .theme-toggle,
+  footer {
+    display: none !important;
+  }
+
+  #diaryGrid {
+    box-shadow: none;
+    border: 1px solid black;
+  }
 }
